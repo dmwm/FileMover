@@ -1,0 +1,134 @@
+.normal {
+    font-size: 12px;
+    font-family: verdana, sans-serif;
+    font-weight: normal;
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+}
+.padright {
+    padding-right: 1cm;
+}
+.heading {
+    font-size: 16px;
+    font-family: verdana, sans-serif;
+    font-weight: bold;
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+}
+table.fmws_table {
+    width: 100%;
+    font-size: 12px;
+    font-weight: normal;
+    font-family: verdana, sans-serif;
+    text-decoration: none;
+    border-width: 1px 1px 1px 1px;
+    border-spacing: 3px;
+    border-style: solid solid solid solid;
+    border-color: gray gray gray gray;
+    border-collapse: collapse;
+    background-color: rgb(255, 250, 250);
+}
+table.fmws_table th {
+    text-transform: uppercase;
+    font-size: 1.1em;
+    font-weight: bold;
+    padding: 5px;
+    margin: 0px;
+    background-color: #F0F0F0;
+    vertical-align: top;
+    text-align: right;
+}
+
+table.fmws_table th.th_left {
+    text-align: left;
+}
+table.fmws_table th.middle {
+    text-align: middle;
+}
+
+table.fmws_table tr.tr_th {
+    background-color: #F0F0F0;
+    border-width: 1px 1px 1px 1px;
+    border-style: solid solid solid solid;
+    border-color: gray gray gray gray;
+    padding: 5px;
+    margin: 0px;
+}
+table.fmws_table tr {
+    background-color: #FFFADC;
+    border-width: 1px 1px 1px 1px;
+    border-style: solid solid solid solid;
+    border-color: gray gray gray gray;
+    padding: 5px;
+    margin: 0px;
+}
+table.fmws_table tr.zebra{
+    background-color: #fff5e8;
+    border-width: 1px 1px 1px 1px;
+    border-style: solid solid solid solid;
+    border-color: gray gray gray gray;
+    padding: 5px;
+    margin: 0px;
+}
+
+table.fmws_table td {
+    text-align: right;
+    padding: 5px;
+    margin: 0px;
+}
+
+table.fmws_table td.td_left {
+    text-align: left;
+    padding: 5px;
+    margin: 0px;
+}
+.highlight a
+{
+    text-decoration: none;
+    padding: .2em 1em;
+    color: #fff;
+    background-color: rgb(128, 141, 119);
+    border: 1px solid #CCCCCC;
+}
+.box a
+{
+    text-decoration: none;
+    padding: .2em 1em;
+    color: #000;
+    background-color: #fff;
+    border: 1px dashed #CCCCCC;
+}
+.hide {
+    display: none;
+}
+.show {
+    display: block;
+}
+.show_inline {
+    display: inline;
+}
+.red {
+    color: #FF0000;
+}
+.redsmall {
+    font-size: 10px;
+    color: #FF0000;
+}
+.box_pwd
+{
+    text-decoration: none;
+    padding: .2em 1em;
+    color: #4C4C4C;
+    background-color: #CCCCCC;
+    border: 1px dashed #000000;
+}
+.help
+{
+    text-decoration: none;
+    padding: .2em .2em;
+    color: #4C4C4C;
+    background-color: #FFFF66;
+    border: 1px dashed #000000;
+}

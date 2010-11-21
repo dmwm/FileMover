@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+#-*- coding: ISO-8859-1 -*-
+#
+# Author: Brain Bockelman
+
+class StatusMsg(object):
+
+    UNKNOWN = "Unknown Status"
+    SERVER_QUEUE = "The web server has too many requests, and this one has " \
+        "been queued."
+    USER_QUEUE = "You have too many files in progress; this request has been "\
+        "queued."
+    TRANSFER_WRAPPER_NOT_LAUNCHED = "Transfer wrapper has not been launched."
+    OBJECT_IN_CACHE = "Object was in cache; transfer done."
+    WAITING_FOR_SRM = "Waiting for SRM transfer to start"
+    GRIDFTP_NO_MOVEMENT = "GridFTP transfer started, but data movement has " \
+                "not begun."
+    IN_PROGRESS = "Data moving; %s %.1f MB complete."
+    TRANSFER_PROCESS_NOT_STARTED = "Transfer process has not started."
+    FILE_DONE = "File completed successfully."
+    TRANSFER_STATUS_UNKNOWN = "Unknown transfer status."
+    TRANSFER_FAILED_STATUS = "File failed; transfer status code %i."
+
+class StatusCode(object):
+
+    UNKNOWN = "Unknown Status"
+    SERVER_QUEUE = "The web server has too many requests, and this one has " \
+        "been queued."
+    USER_QUEUE = "You have too many files in progress; this request has been "\
+        "queued."
+    DONE = 0
+    FAILED = 3
+    TRANSFER_WRAPPER_NOT_LAUNCHED = 6
+    TRANSFER_PROCESS_NOT_STARTED = 1
+    TRANSFER_STATUS_UNKNOWN = 4
+    TRANSFER_FAILED = 3
+
+    def isRunning(code):
+        raise NotImplementedError()
+    isRunning = staticmethod(isRunning)
+
+    def isFailure(code):
+        if code == StatusCode.FAILED:
+            return True
+        return False
+    isFailure = staticmethod(isFailure)
+

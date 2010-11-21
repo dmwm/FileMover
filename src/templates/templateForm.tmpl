@@ -1,0 +1,120 @@
+
+<!-- tempalteForm -->
+<hr style="border:none;border-top: 1px dotted #CCCCCC;" />
+Hello ${user}
+<hr style="border:none;border-top: 1px dotted #CCCCCC;" />
+
+<br />
+<div id="form_files" name="form_files">
+
+<form action="javascript:ajaxAction('${user}')" method="get">
+<table class="normal">
+<tr>
+<td>
+<span class="heading">Request file via LFN</span>
+</td>
+</tr>
+
+<tr>
+<td>
+<input id="lfn" name="lfn" type="text" size="95" />
+</td>
+</tr>
+
+<tr>
+<td>
+<input type="submit" value="Request" onclick="javascript:SetMethod('request')" />
+<input type="reset" value="Reset" />
+<input id="method" type="hidden" />
+</td>
+</tr>
+</table>
+</form>
+
+<br />
+<br />
+
+<form action="javascript:ajaxResolveLfn('${user}')" method="get">
+<div id="lfnsHolder" name="lfnsHolder"></div>
+<table class="normal">
+<tr>
+<td colspan="3">
+<span class="heading">Request file via dataset/run/event</span>
+</td>
+</tr>
+
+<tr>
+<td class="padright">dataset path or pattern (optional)</td>
+<td class="padright">run</td>
+<td>event or event range (optional)</td>
+</tr>
+
+<tr>
+<td class="padright">
+<input id="dataset" name="dataset" type="text" size="50" />
+</td>
+<td class="padright">
+<input id="run" name="run" type="text" size="6" />
+</td>
+<td>
+<input id="minEvt" name="minEvt" type="text" size="10" />
+-
+<input id="maxEvt" name="maxEvt" type="text" size="10" />
+<input id="branch" name="branch" type="hidden" />
+</td>
+</tr>
+
+<tr>
+<td colspan="3">
+<input type="submit" value="Request" />
+<input type="reset" value="Reset" />
+</td>
+</tr>
+</table>
+</form>
+
+</div> <!-- end of form_files -->
+
+<div id="form_events" name="form_events" class="hide">
+
+<form action="javascript:ajaxGetEvent('${user}');EFormAction('disabled')" method="get">
+
+<span class="heading">Request file with given dataset/run/event/lumi</span>
+<span class="redsmall">(this service is currently limited to real data located at CERN, srm-cms.cern.ch)</span>
+<ul style="list-style-type: none;">
+<li>Your Email (to be notified upon completion)</li>
+<ul style="list-style-type: none;">
+<li>
+<input id="eform_email" name="eform_email" type="text" size="50" />
+</li>
+</ul>
+<li>dataset</li>
+<ul style="list-style-type: none;">
+<li>
+<input id="eform_dataset" name="eform_dataset" type="text" size="50" />
+</li>
+</ul>
+<li></li>
+<li>
+event sets: <em>run event lumi</em> (one per line)
+</li>
+<ul style="list-style-type: none;">
+<li>
+<textarea id="eform_eventset" name="eform_eventset" cols="30" rows="10"></textarea>
+</li>
+</ul>
+<li>&nbsp;</li>
+<li>
+<input id="eform_submit" name="eform_submit" type="submit" value="Request" />
+<input id="eform_reset" name="eform_reset" type="reset" value="Reset" />
+</li>
+</ul>
+</form>
+
+</div> <!-- end of form_events -->
+
+<hr style="border:none;border-top: 1px dotted #CCCCCC;" />
+<div id="_response">${cache}</div>
+
+<!-- end of tempalteForm -->
+
