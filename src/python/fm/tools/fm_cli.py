@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
+"""
+FileMover command line interface
+"""
+
 import os
 import sys
-import time
 import json
 import urllib
 import urllib2
 from   optparse import OptionParser
-try:
-    # Python 2.5
-    import xml.etree.ElementTree as ET
-except:
-    # prior requires elementtree
-    import elementtree.ElementTree as ET
+import xml.etree.ElementTree as ET
 
 class FMOptionParser: 
     """
@@ -28,7 +26,7 @@ class FMOptionParser:
                                         dest="lfn",
              help="specify input lfn")
 
-    def getOpt(self):
+    def get_opt(self):
         """
         Returns parse list of options
         """
@@ -53,8 +51,9 @@ def parser(data):
                 yield row
 
 def srmcp(lfn, verbose=None):
+    """Invoke srmcp command over provided LFN"""
     # query DBS for SE's
-    query='find site where file=%s' % lfn
+    query = 'find site where file=%s' % lfn
     dbs_instances = ['cms_dbs_prod_global', 'cms_dbs_caf_analysis_01',
                      'cms_dbs_ph_analysis_01', 'cms_dbs_ph_analysis_02',
                      'cms_dbs_prod_local_01', 'cms_dbs_prod_local_02',
@@ -67,14 +66,17 @@ def srmcp(lfn, verbose=None):
     for dbs in dbs_instances:
         url = 'http://cmsdbsprod.cern.ch/%s/servlet/DBSServlet' % dbs
         query_file = 'find file.size where file=%s' % lfn
-        params = {'api':'executeQuery', 'apiversion':'DBS_2_0_9', 'query':query_file}
+        params = {'api':'executeQuery', 'apiversion':'DBS_2_0_9', 
+                        'query':query_file}
         data = urllib2.urlopen(url, urllib.urlencode(params))
         for item in [i for i in parser(data.read())]:
             file_size = item['file.size']
             print "file: %s" % lfn
-            print "size: %s Bytes, %s MB" % (file_size, long(file_size)/1024./1024.)
+            print "size: %s Bytes, %s MB" \
+                    % (file_size, long(file_size)/1024./1024.)
         print
-        params = {'api':'executeQuery', 'apiversion':'DBS_2_0_9', 'query':query}
+        params = {'api':'executeQuery', 'apiversion':'DBS_2_0_9', \
+                        'query':query}
         data = urllib2.urlopen(url, urllib.urlencode(params))
         sites = [i for i in parser(data.read())]
         if  not sites:
@@ -96,13 +98,18 @@ def srmcp(lfn, verbose=None):
     sitedict = {}
     for item in sites:
         site = item['site']
-        url = 'https://cmsweb.cern.ch/sitedb/json/index/SEtoCMSName?name=%s' % site
-        data = urllib2.urlopen(url)
+        url = 'https://cmsweb.cern.ch/sitedb/json/index/SEtoCMSName?name=%s' \
+                        % site
+        data = urllib2.urlopen(url).read()
         try:
-            cmsnamedict = eval(data.read())
+            cmsnamedict = json.loads(data)
+        except:
+            msg += "WARNING, fail to JSON'ify data:\n%s" % data
+            cmsnamedict = eval(data, { "__builtins__": None }, {})
+        try:
             cmsname = cmsnamedict['0']['name']
             sitedict[site] = cmsname
-        except:
+        except Exception, _exc:
             pass
     if  verbose:
         print "SiteDB reports:"
@@ -141,8 +148,10 @@ def srmcp(lfn, verbose=None):
 
     # finally let's create srmcp commands for each found pfn
     for item in pfnlist:
-        file = item.split("/")[-1]
-        cmd = "srmcp -debug=true -srm_protocol_version=2 -retry_num=1 -streams_num=1 %s file:////tmp/%s" % (item, file)
+        filename = item.split("/")[-1]
+        cmd  = "srmcp -debug=true -srm_protocol_version=2"
+        cmd += " -retry_num=1 -streams_num=1 %s file:////tmp/%s" \
+                % (item, filename)
         # Lookup TURL
         try:
             cmd_urls = "lcg-getturls -T srmv2 -b -p gsiftp %s" % item
@@ -153,15 +162,17 @@ def srmcp(lfn, verbose=None):
 #            print cmd
         yield cmd
 
-#lfn='/store/mc/Summer09/MinBias-herwig/GEN-SIM-RAW/MC_31X_V3_preproduction_312-v1/0017/FE31A484-9C7A-DE11-B95D-00215E222808.root'
-#
-# main
-#
-if __name__ == '__main__':
-    optManager  = FMOptionParser()
-    (opts, args) = optManager.getOpt()
+def main():
+    """Main function"""
+    mgr  = FMOptionParser()
+    opts, _ = mgr.get_opt()
     if  not opts.lfn:
         print "Usage: fm_cli.py --help"
         sys.exit(0)
     for cmd in srmcp(opts.lfn, opts.verbose):
         print cmd
+#
+# main
+#
+if __name__ == '__main__':
+    main()

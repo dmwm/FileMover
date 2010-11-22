@@ -1,5 +1,11 @@
-#!/usr/bin/env python
-from xml.dom.minidom import parse, parseString
+#-*- coding: ISO-8859-1 -*-
+#pylint: disable-msg=C0103
+
+"""
+DBS parser utils
+"""
+
+from xml.dom.minidom import parseString
 from fm.utils.Utils import sizeFormat
 
 def parseDBSoutput_DBS_2_0_5(data):

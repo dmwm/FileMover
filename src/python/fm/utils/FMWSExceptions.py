@@ -1,7 +1,5 @@
-#!/usr/bin/env python
 #-*- coding: ISO-8859-1 -*-
 #pylint: disable-msg=E1101,C0103,R0902,R0903
-#Author:  Valentin Kuznetsov
 
 """
 FileMover Exception class
@@ -57,10 +55,3 @@ class FMWSException(Exception):
     def getClassName(self):
         """ Return class name. """
         return "%s" % (self.__class__.__name__)
-
-#
-# main
-#
-if __name__ == "__main__":
-    ddEx = FMWSException()
-

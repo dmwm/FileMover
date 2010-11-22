@@ -13,7 +13,6 @@ import sys
 import stat
 import urllib
 import urllib2
-import types
 import time
 import traceback
 from subprocess import PIPE, Popen
@@ -67,24 +66,6 @@ def sizeFormat(i):
             return "%3.1f%s" % (num, x)
         num /= 1024.
 
-def walktree(top, callback):
-    """
-    recursively descend the directory tree rooted at top,
-    calling the callback function for each regular file
-    """
-    for f in os.listdir(top):
-        pathname = os.path.join(top, f)
-        mode = os.stat(pathname)[stat.ST_MODE]
-        if stat.S_ISDIR(mode):
-            # It's a directory, recurse into it
-            walktree(pathname, callback)
-        elif stat.S_ISREG(mode):
-            # It's a file, call the callback function
-            callback(pathname)
-        else:
-            # Unknown file type, print a message
-            print 'Skipping %s' % pathname
-
 def cleanup(ifile):
     """
     clean files whose creation time longer then 24 hours ago
@@ -99,7 +80,7 @@ def getArg(kwargs, key, default):
     if  kwargs.has_key(key):
         try:
             arg = kwargs[key]
-            if  type(default) is types.IntType:
+            if  isinstance(default, int):
                 arg = int(arg)
         except NotImplementedError:
             pass
@@ -180,20 +161,9 @@ def getPercentageDone(tSize, fSize):
     """format output of percentage"""
     return "%3.1f" % (long(tSize)*100/long(fSize))
 
-def iparser(textarea):
-    """parser textarea textarea and yeild list of run event lumi"""
-    eventlist = []
-    for item in textarea.split('\n'):
-        if  item:
-            run, event, lumi = item.split()
-            eventlist.append((run, event, lumi))
-    return eventlist
-
 def uniqueList(alist):
     """for given list provide list with unique entries"""
-    set = {}
-    map(set.__setitem__, alist, [])
-    return set.keys()
+    return list(set(alist))
 
 def sendEmail(tofield, msg, requestid):
     """Send an Email with given message"""
@@ -207,108 +177,12 @@ def sendEmail(tofield, msg, requestid):
     p.stdin.write("\n"+msg+"\n\n\n")
     p.stdin.close()
 
-def cmsrun_script(lfnlist, config_name, srmcp=None, prefix='/tmp'):
-    """
-    Generate cmsrun script for given config file
-    """
-    if  not srmcp:
-        srmcp = 'srmcp -debug=true -srm_protocol_version=2 -retry_num=1 -streams_num=1 srm://srm-cms.cern.ch:8443/srm/managerv2?SFN=/castor/cern.ch/cms'
-    cplist = []
-    rmlist = []
-    for lfn in lfnlist:
-        root_file = lfn.split('/')[-1]
-        cmd = '%s%s file:///%s/%s' % (srmcp, lfn, prefix, root_file)
-        cplist.append(cmd)
-        rmlist.append('rm -f /tmp/%s' % root_file)
-    src = """#!/bin/bash
-eval `scramv1 run -sh`
-%s
-cmsRun %s
-%s
-    """ % ('\n'.join(cplist), config_name, '\n'.join(rmlist))
-    return src
-
-def edmconfig(release, lfnlist, eventlist, outfilename, prefix=None):
-    """Generate EDM config file template"""
-    if  not lfnlist:
-        return ''
-    if  prefix:
-        files = ','.join(["'%s/%s'" % (prefix, f.split('/')[-1]) for f in lfnlist])
-    else:
-        files = str(lfnlist).replace('[','').replace(']','')
-    events = ""
-    for run, event, lumi in eventlist:
-        events += "'%s:%s'," % (run, event)
-    events = events[:-1] # to remove last comma
-    if  release < 'CMSSW_1_6':
-        return None, None # no support for that release series
-    elif  release < 'CMSSW_2_1':
-        config = """process PICKEVENTS =
-{
-    include "FWCore/MessageService/data/MessageLogger.cfi"
-    replace MessageLogger.cerr.threshold = "WARNING"
-    source = PoolSource {
-        untracked vstring fileNames = { %s }
-        untracked VEventID eventsToProcess= { %s }
-    }
-    module out = PoolOutputModule
-    {
-        untracked string fileName = '%s'
-    }
-    endpath outpath = { out }
-}
-""" % (files, events.replace("'",""), outfilename)
-    elif release < 'CMSSW_3_1_0':
-        config = """import FWCore.ParameterSet.Config as cms
-
-process = cms.Process("PICKEVENTS")
-
-process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring( %s ), 
-    eventsToProcess = cms.untracked.VEventID( %s )
-)
-
-process.Out = cms.OutputModule("PoolOutputModule",
-    outputCommands = cms.untracked.vstring('keep *'),
-    fileName = cms.untracked.string('%s')
-)
-
-process.e = cms.EndPath(process.Out)
-
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
-)
-""" % (files, events, outfilename)
-    else:
-        config = """import FWCore.ParameterSet.Config as cms
-
-process = cms.Process("PICKEVENTS")
-
-process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring( %s ), 
-    eventsToProcess = cms.untracked.VEventRange( %s )
-)
-
-process.Out = cms.OutputModule("PoolOutputModule",
-    outputCommands = cms.untracked.vstring('keep *'),
-    fileName = cms.untracked.string('%s')
-)
-
-process.e = cms.EndPath(process.Out)
-
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
-)
-""" % (files, events, outfilename)
-    config = '# %s\n\n%s' % (release, config)
-    return config
-
-        
 class LfnInfoCache(object):
     """
        Simple cache class to keep lfn around
     """
-    def __init__(self):
+    def __init__(self, config):
+        self.dbs = config.items('dbs')
         self.lfnDict = {}
         self.day = day()
         
@@ -323,25 +197,30 @@ class LfnInfoCache(object):
             lfnsize = getLFNSize(lfn)
             self.lfnDict[lfn] = lfnsize
             return lfnsize
-#
-# main
-#
-if __name__ == "__main__":
-    ilfn = "/store/data/CRUZET3/Cosmics/RAW/v1/000/050/832/186585EC-024D-DD11-B747-000423D94AA8.root"
+
+def test():
+    """Test function"""
+    ilfn = "/store/data/CRUZET3/Cosmics/RAW/v1/" \
+                + "000/050/832/186585EC-024D-DD11-B747-000423D94AA8.root"
     size = getLFNSize(ilfn)
     print size
     print getPercentageDone(4*1024*1024, size)
     print printSize(size)
 #    idir = '/data/vk/filemover/cmssw/root_files'
-#    walktree(idir, cleanup)
     print "Test edmconfig"
     lfnlist = ['/a/b/c.root', '/e/d/f.root']
     release = 'CMSSW_3_5_6'
-    eventlist = [(100,1,1), (100,1,2)]
+    eventlist = [(100, 1, 1), (100, 1, 2)]
     outfilename = '/tmp/cms_files/valya/my.root'
     print edmconfig(release, lfnlist, eventlist, outfilename)
     print "Test edmconfig with prefix"
-    myconfig = edmconfig(release, lfnlist, eventlist, outfilename, prefix='file:////tmp')
+    myconfig = edmconfig(release, lfnlist, eventlist, 
+                outfilename, prefix='file:////tmp')
     print myconfig
     print "Test cmsrun_script"
     print cmsrun_script(lfnlist, 'myconfig.py')
+#
+# main
+#
+if __name__ == "__main__":
+    test()

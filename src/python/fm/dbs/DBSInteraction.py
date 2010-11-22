@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 #-*- coding: ISO-8859-1 -*-
 #pylint: disable-msg=E1101,C0103,R0902,R0903
-#Author: Valentin Kuznetsov
 
 """
 CMS DBS file manager which find files based on dataset/run/event/branch 
 information from DBS.
 """
 
-import types
 import urllib
 import logging
 import urllib2
@@ -20,8 +18,26 @@ from fm.utils.Utils import sizeFormat
 
 log = logging.getLogger("DBS")
 
+def dbsinstances():
+    """
+    return list of known DBS instances, should be replaced
+    with Registration Service once it's available
+    """
+    dbslist = ['cms_dbs_prod_global',
+               'cms_dbs_caf_analysis_01',
+               'cms_dbs_ph_analysis_01',
+               'cms_dbs_ph_analysis_02',
+              ]
+    for i in range(1, 11):
+        if  i < 10:
+            dbslist.append('cms_dbs_prod_local_0%s' % i)
+        else:
+            dbslist.append('cms_dbs_prod_local_%s' % i)
+    return dbslist
+
+
 class File(object):
-      
+    """Class describing DBS File Object"""      
     def __init__(self):
         self.name = None
         self.size = None
@@ -30,18 +46,19 @@ class File(object):
 
 class DBS(object):
     """
-       this class handles all interaction with DBS
+    Class handles all interactions with DBS
     """
 
-    def __init__(self, dbsInst="cms_dbs_prod_global"):
+    def __init__(self, dbsUrl, dbsInst, dbsParams):
         self.dbs = dbsInst
-        self.global_url = "http://cmsdbsprod.cern.ch"
-        self.params = {'apiversion': 'DBS_2_0_6', 'api': 'executeQuery'}
-        self.dbslist = self.dbsinstances()
+        self.global_url = dbsUrl
+        self.params = dbsParams
+        self.dbslist = dbsinstances()
         self.known_lfns = {}
         self.dbsver = {}
 
     def getDBSversion(self, dbs):
+        """Retrieve DBS version"""
         params = dict(self.params)
         params['api'] = 'getDBSServerVersion'
         dbsurl = self.getdbsurl(dbs)
@@ -55,6 +72,7 @@ class DBS(object):
         return None
  
     def dbsparser(self, dbs, data):
+        """Parse DBS data"""
         if  self.dbsver.has_key(dbs):
             dbsver = self.dbsver[dbs]
         else:
@@ -67,12 +85,15 @@ class DBS(object):
             return parseDBSoutput_DBS_2_0_6(data)
 
     def getlfn(self, lfn):
+        """Get LFN file info"""
         return self.getfile_info(lfn, pattern="=%s")
 
     def getguid(self, guid):
+        """Get GUID info"""
         return self.getfile_info(guid, pattern="like *%s*")
 
     def getfile_info(self, guid, pattern="like *%s*"):
+        """Get file info"""
         if guid in self.known_lfns:
             return self.known_lfns[guid]
         query_pattern = "find file.name, file.size, file.createdate, " \
@@ -80,7 +101,7 @@ class DBS(object):
         print query_pattern
         query = query_pattern % guid
         self.params['query'] = query
-        file = File
+        fileobj = File
         for dbs in self.dbslist:
             log.info("Querying dbs %s for file %s." % (dbs, guid))
             dbsurl = self.getdbsurl(dbs)
@@ -92,40 +113,25 @@ class DBS(object):
                 dom = parse(data)
                 results = dom.getElementsByTagName("result")
                 if results:
-                    self.known_lfns[guid] = file
-                    file.name = results[0].getAttribute('FILES_LOGICALFILENAME')
-                    file.size = int(results[0].getAttribute('FILES_FILESIZE'))
-                    return file
+                    self.known_lfns[guid] = fileobj
+                    fileobj.name = \
+                        results[0].getAttribute('FILES_LOGICALFILENAME')
+                    fileobj.size = \
+                        int(results[0].getAttribute('FILES_FILESIZE'))
+                    return fileobj
             except:
                 pass
         raise ValueError("Unknown file %s." % guid)
 
     def getdbsurl(self, dbs):
         """
-           return DBS instance URL
+        return DBS instance URL
         """
         if  dbs.find('tier0') != -1:
             url = "http://cmst0dbs.cern.ch"
         else:
             url = self.global_url
         return url + "/%s/servlet/DBSServlet" % dbs
-
-    def dbsinstances(self):
-        """
-           return list of known DBS instances, should be replaced
-           with Registration Service once it's available
-        """
-        dbslist = ['cms_dbs_prod_global',
-                   'cms_dbs_caf_analysis_01',
-                   'cms_dbs_ph_analysis_01',
-                   'cms_dbs_ph_analysis_02',
-                  ]
-        for i in range(1, 11):
-            if  i < 10:
-                dbslist.append('cms_dbs_prod_local_0%s' % i)
-            else:
-                dbslist.append('cms_dbs_prod_local_%s' % i)
-        return dbslist
 
     def blockLookup(self, lfn):
         """
@@ -200,7 +206,7 @@ class DBS(object):
                 data = urllib2.urlopen(dbsurl, 
                                urllib.urlencode(params, doseq=True)).read()
                 rel = self.dbsparser(dbs, data)
-                if  rel and type(rel) is types.ListType and len(rel) == 1: 
+                if  rel and isinstance(rel, list) and len(rel) == 1: 
                     return rel[0]
             except:
                 pass
@@ -229,7 +235,7 @@ class DBS(object):
         # condition on event if no lumi is present, since event is not properly
         # recorded in DBS
         if evt and not lumi:
-            if type(evt) is types.TupleType or type(evt) is types.ListType:
+            if  isinstance(evt, tuple) or isinstance(evt, list):
                 cond += " and lumi.startevnum <= %s and lumi.endevnum >= %s "\
                         % (evt[0], evt[1])
             else:
@@ -335,7 +341,9 @@ def main():
     except:
         traceback.print_exc()
     dbsInst = 'cms_dbs_prod_global'
-    dbscls = DBS(dbsInst)
+    dbsUrl = 'http://cmsdbsprod.cern.ch'
+    params = {'apiversion': 'DBS_2_0_9', 'api': 'executeQuery'}
+    dbscls = DBS(dbsUrl, dbsInst, params)
     dbsver = dbscls.getDBSversion(dbsInst)
     print "DBS instance %s, version %s" % (dbsInst, dbsver)
     try:

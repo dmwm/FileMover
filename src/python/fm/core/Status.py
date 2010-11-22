@@ -1,9 +1,12 @@
-#!/usr/bin/env python
 #-*- coding: ISO-8859-1 -*-
-#
-# Author: Brain Bockelman
+#pylint: disable-msg=C0103
+
+"""
+FileMover status codes
+"""
 
 class StatusMsg(object):
+    """Define FileMover status messages"""
 
     UNKNOWN = "Unknown Status"
     SERVER_QUEUE = "The web server has too many requests, and this one has " \
@@ -22,7 +25,7 @@ class StatusMsg(object):
     TRANSFER_FAILED_STATUS = "File failed; transfer status code %i."
 
 class StatusCode(object):
-
+    """Define FileMover status codes"""
     UNKNOWN = "Unknown Status"
     SERVER_QUEUE = "The web server has too many requests, and this one has " \
         "been queued."
@@ -36,10 +39,12 @@ class StatusCode(object):
     TRANSFER_FAILED = 3
 
     def isRunning(code):
+        """check if code is running code"""
         raise NotImplementedError()
     isRunning = staticmethod(isRunning)
 
     def isFailure(code):
+        """check if code is failure code"""
         if code == StatusCode.FAILED:
             return True
         return False

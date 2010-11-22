@@ -10,8 +10,8 @@ function loadMasthead() {
 }
 function footerMenuText(){
     return [
-{label: "PhEDEx Home", link: "https://cmsweb.cern.ch/phedex/", title: "Data placement, transfer monitoring"},
-{label: "FileMover", link: "https://cmsweb.cern.ch/filemover/", title: "Fetch your favorite LFN"},
+{label: "PhEDEx Home", link: "/phedex/", title: "Data placement, transfer monitoring"},
+{label: "FileMover", link: "/filemover/", title: "Fetch your favorite LFN"},
 
     ]
 }
@@ -113,38 +113,38 @@ function SetMethod(tag)
     var id=document.getElementById('method');
     id.value=tag;
 }
-function ajaxAction(user) {
+function ajaxAction() {
     var lfn=document.getElementById('lfn').value;
     var method=document.getElementById('method').value;
     if (method=='request') {
-     ajaxRequest(user,lfn);
+     ajaxRequest(lfn);
     }  else if (method=='status') {
-     ajaxStatus(user,lfn);
+     ajaxStatus(lfn);
     }  else if (method=='cancel') {
-     ajaxCancel(user,lfn);
+     ajaxCancel(lfn);
     }  else {
      alert('ERROR');
     }
 }
-function ajaxRequest(user,lfn)
+function ajaxRequest(lfn)
 {
     wait();
-    ajaxEngine.sendRequest('ajaxRequest','user='+user,'lfn='+lfn);
-    setTimeout('ajaxStatusOne(\''+user+'\',\''+lfn+'\')',3000);
+    ajaxEngine.sendRequest('ajaxRequest','lfn='+lfn);
+    setTimeout('ajaxStatusOne(\''+lfn+'\')',3000);
 }
-function ajaxCancel(user,lfn)
+function ajaxCancel(lfn)
 {
     wait();
-    ajaxEngine.sendRequest('ajaxCancel','user='+user,'lfn='+lfn);
+    ajaxEngine.sendRequest('ajaxCancel','lfn='+lfn);
 }
-function ajaxStatus(user,lfn)
+function ajaxStatus(lfn)
 {
     wait();
-    ajaxEngine.sendRequest('ajaxStatus','lfn='+lfn,'user='+user);
+    ajaxEngine.sendRequest('ajaxStatus','lfn='+lfn);
 }
-function ajaxStatusOne(user,lfn)
+function ajaxStatusOne(lfn)
 {
-    ajaxEngine.sendRequest('ajaxStatusOne','user='+user,'lfn='+lfn);
+    ajaxEngine.sendRequest('ajaxStatusOne','lfn='+lfn);
 }
 function ajaxdbsStatus(dbs)
 {
@@ -153,20 +153,16 @@ function ajaxdbsStatus(dbs)
         ajaxEngine.sendRequest('ajaxdbsStatus','dbs='+dbs);
     }
 }
-function ajaxcmsRunStatus(user, requestid)
+function ajaxRemove(lfn)
 {
-    ajaxEngine.sendRequest('ajaxcmsRunStatus','user='+user,'requestid='+requestid);
+    ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn);
 }
-function ajaxRemove(user,lfn)
+function ajaxrm(lfn)
 {
-    ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn,'user='+user);
-}
-function ajaxrm(user, lfn)
-{
-    ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn,'user='+user,'remove=1');
+    ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn,'force_remove=1');
     ClearTag('_response');
 }
-function ajaxResolveLfn(user)
+function ajaxResolveLfn()
 {
     wait();
     ajaxdbsStatus('cms_dbs_prod_global');
@@ -175,32 +171,17 @@ function ajaxResolveLfn(user)
     var minEvt=document.getElementById('minEvt').value;
     var maxEvt=document.getElementById('maxEvt').value;
     var branch=document.getElementById('branch').value;
-    ajaxEngine.sendRequest('ajaxResolveLfn','user='+user,'dataset='+dataset,'run='+run,'minEvt='+minEvt,'maxEvt='+maxEvt,'branch='+branch);
+    ajaxEngine.sendRequest('ajaxResolveLfn','dataset='+dataset,'run='+run,'minEvt='+minEvt,'maxEvt='+maxEvt,'branch='+branch);
 }
-function ajaxGetEvent(user)
-{
-    wait();
-    var dataset=document.getElementById('eform_dataset').value;
-    var evtset=document.getElementById('eform_eventset').value;
-    var email=document.getElementById('eform_email').value;
-    ajaxEngine.sendRequest('ajaxGetEvent','user='+user,'dataset='+dataset,'eventset='+evtset,'email='+email);
-}
-function ajaxUnlock()
-{
-    ajaxEngine.sendRequest('ajaxUnlock');
-}
-ajaxEngine.registerRequest('ajaxUnlock','unlock');
 
 ajaxEngine.registerAjaxElement('lfnsHolder');
 ajaxEngine.registerRequest('ajaxResolveLfn','resolveLfn');
-ajaxEngine.registerRequest('ajaxGetEvent','getEvent');
 ajaxEngine.registerRequest('ajaxRequest','request');
 ajaxEngine.registerRequest('ajaxCancel','cancel');
 ajaxEngine.registerRequest('ajaxStatus','status');
 ajaxEngine.registerRequest('ajaxRemove','remove');
 ajaxEngine.registerRequest('ajaxStatusOne','statusOne');
 ajaxEngine.registerRequest('ajaxdbsStatus','dbsStatus');
-ajaxEngine.registerRequest('ajaxcmsRunStatus','cmsRunStatus');
 
 //var ajaxUpdater = new Updater('_response');
 var ajaxUpdater = new dbsUpdater('_response');

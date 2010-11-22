@@ -14,31 +14,35 @@ import stat
 import time
 import urllib
 import traceback
-import ConfigParser
 
 # CherryPy/Cheetah modules
 import cherrypy
 from   cherrypy import expose, response, tools
 from   cherrypy.lib.static import serve_file
 from   cherrypy import config as cherryconf
-from   Cheetah.Template import Template
 
 # FileMover modules
-from   fm.utils.FMWSConfig  import FMWSConfig
+from   fm.utils.FMWSConfig  import fm_config
 from   fm.utils.FMWSLogger  import FMWSLogger, setLogger
-from   fm.core.FileManager import Server, validate_lfn
-from   fm.core.Status import StatusMsg, StatusCode
-from   fm.dbs.DBSInteraction import DBS
+from   fm.core.FileManager import FileManager, validate_lfn
+from   fm.core.Status import StatusCode
+from   fm.dbs.DBSInteraction import DBS, dbsinstances
 from   fm.utils.Utils import sizeFormat, getArg, sendEmail, getExcMessage
-from   fm.utils.Utils import cleanup, iparser
-
-# webtools framework
-#from  Tools.SecurityModuleCore import decryptCookie
-#from  Tools.SecurityModuleCore import SecurityDBApi
-#from  Tools.SecurityModuleCore.SecurityDBApi import SecurityDBApi
+from   fm.utils.Utils import cleanup
 
 # WMCore/WebTools modules
 from WMCore.WebTools.Page import TemplatedPage
+
+CODES = {'valid': 0, 'too_many_request': 1, 'too_many_lfns': 2}
+
+def getUserName():
+    """
+    Get userName from stored cookie, should be run within WEBTOOLS framework
+    """
+    userName = "valya" # TMP TEST
+    header = cherrypy.request.headers
+    dn = header.get('Ssl-Client-S-Dn', None)
+    return userName
 
 def check_scripts(scripts, map, path):
     """
@@ -129,7 +133,7 @@ def spanId(lfn):
     """assign id for span tag based on provided lfn"""
     return lfn.split("/")[-1].replace(".root","")
 
-def formatLFNList(user, iList, sList):
+def formatLFNList(iList, sList):
     """HTML formatted list of LNFs"""
     page  = ""
     style = ""
@@ -152,26 +156,31 @@ ajaxEngine.registerAjaxObject('%s',lfnUpdater);
 </script>
 """ % (style, lfn, spanid, fstat, spanid, spanid)
         if  fstat:
-            page += """<script type="text/javascript">setTimeout('ajaxStatusOne(\\'%s\\',\\'%s\\')',1000)</script>""" % (user, lfn)
+            page += """<script type="text/javascript">setTimeout('ajaxStatusOne(\\'%s\\')',1000)</script>""" % lfn
     return page
     
 class FileMoverService(FMWSLogger, TemplatedPage):
     """FileMover web-server based on CherryPy"""
     def __init__(self, config):
         TemplatedPage.__init__(self, config)
-        self.dbs = DBS()
+        dbs = config.section_('dbs')
+        self.dbs = DBS(dbs.url, dbs.instance, dbs.params)
         self.securityApi    = ""
-        self.fmwsdir        = os.getcwd() # remember location where we started
-        self.fmConfig       = FMWSConfig()
-        self.download       = self.fmConfig.download_area()
-        Server.configure(self.fmConfig.config)
-        self.verbose        = self.fmConfig.verboseLevel()
+        self.fmConfig       = config.section_('fmws')
+        self.verbose        = self.fmConfig.verbose
+        self.day_transfer   = self.fmConfig.day_transfer
+        self.max_transfer   = self.fmConfig.max_transfer
+        self.file_manager   = config.section_('file_manager')
+        self.transfer_dir   = self.file_manager.base_directory
+        self.download       = self.fmConfig.download_area
+        self.fmgr = FileManager()
+        self.fmgr.configure(fm_config(config))
         self.voms_timer     = 0
         self.userDict       = {}
         self.userDictPerDay = {}
         self.url            = "/filemover"
 
-        FMWSLogger.__init__(self, self.fmConfig.loggerDir(), 
+        FMWSLogger.__init__(self, self.fmConfig.logger_dir, 
                 "FMWSServer", self.verbose)
         setLogger('cherrypy.access', 
                 super(FileMoverService, self).getHandler(),
@@ -226,20 +235,15 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         msg = getExcMessage()
         self.writeLog(traceback.format_exc())
         page  = "<div>Request failed</div>"
-        page += "<pre>%s</pre>" % msg
         return page
 
     @expose
-    def index(self, user = "USER"):
+    def index(self):
         """default service method"""
         page = self.getTopHTML()
-        userName = self.getUserName()
-        if  not userName or userName == "guest" or userName.lower() == "unknown":
-            page += "<p>In order to use CMS File service you must login with your HyperNews login name and password.</p><p>Please follow Login link in right upper corner of the page.</p>"
-        else:
-            user  = userName
-            self.addUser(user)
-            page += self.userForm(user)
+        user = getUserName()
+        self.addUser(user)
+        page += self.userForm(user)
         page += getBottomHTML()
         return page
 
@@ -247,10 +251,13 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         """add user to local cache"""
         if  not self.userDict.has_key(user):
             self.userDict[user] = ([], [])
-            try:
-                os.makedirs("%s/download/%s/softlinks" % (self.download, user))
-            except:
-                pass
+
+    def makedir(self, user):
+        """Create user dir structure on a server"""
+        try:
+            os.makedirs("%s/%s/softlinks" % (self.download, user))
+        except Exception, _exc:
+            pass
 
     def getTopHTML(self):
         """HTML top template"""
@@ -262,9 +269,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         """get status of current user's job"""
         try:
             iList, sList = self.userDict[user]
-            iList.reverse() # reverse list to see newly requested files first
-            sList.reverse()
-        except:
+        except Exception, _exc:
             pass
             return ""
         page = """
@@ -274,7 +279,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
 %s
 </table>
 </div>
-        """ % formatLFNList(user, iList, sList)
+        """ % formatLFNList(iList, sList)
         return page
         
     def getStatForLfn(self, user, lfn):
@@ -288,8 +293,8 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             spanid = spanId(lfn)
             page  += """%s""" % fstat
             if  fstat.find("Download") == -1:
-                page +=" | <a href=\"javascript:ajaxCancel('%s','%s')\">Cancel</a> " % (user, lfn)
-        except:
+                page +=" | <a href=\"javascript:ajaxCancel('%s')\">Cancel</a> " % lfn
+        except Exception, _exc:
             print lfn
             print self.userDict
             pass
@@ -302,8 +307,9 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
 
     @expose
-    def resolveLfn(self, user, dataset, run, minEvt, maxEvt, branch, **kwargs):
+    def resolveLfn(self, dataset, run, minEvt, maxEvt, branch, **kwargs):
         """look-up LFNs in DBS upon user request"""
+        user = getUserName()
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         if  not minEvt:
             evt = ""
@@ -319,7 +325,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             page += """<table class="normal">\n"""
             for lfn, size in lfnList:
                 page += "<tr>\n"
-                page += """<td>%s</td><td>%s</td><td><a href="javascript:ajaxRequest('%s','%s')">request</a></td>\n""" % (lfn, size, user, lfn)
+                page += """<td>%s</td><td>%s</td><td><a href="javascript:ajaxRequest('%s')">request</a></td>\n""" % (lfn, size, lfn)
                 page += "</tr>\n"
             page += "</table>\n"
         page += """<script type="text/javascript">clearInterval()</script>"""
@@ -342,7 +348,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         today = time.strftime("%Y%m%d", time.gmtime(time.time()))
         if  self.userDictPerDay.has_key(user):
             nReq, day = self.userDictPerDay[user]
-            if  day != today and nReq > self.fmConfig.dayTransfer():
+            if  day != today and nReq > self.day_transfer:
                 return 0
             else:
                 if  day != today:
@@ -351,18 +357,18 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             self.userDictPerDay[user] = (0, today)
         lfnList, statList = self.userDict[user]
         # check how may requests user placed at once
-        if  len(lfnList) < int(self.fmConfig.maxTransfer()):
+        if  len(lfnList) < int(self.max_transfer):
             if  not lfnList.count(lfn):
                 lfnList.append(lfn)
                 statList.append('requested')
                 nRequests, day = self.userDictPerDay[user]
                 self.userDictPerDay[user] = (nRequests+1, today)
             else:
-                return 2
+                return CODES['too_many_lfns'] # 2
         else: 
-            return 0
+            return CODES['valid'] # 0
         self.userDict[user] = (lfnList, statList)
-        return 1
+        return CODES['too_many_request'] # 1
         
     def delLfn(self, user, lfn):
         """delete LFN from the queue"""
@@ -378,30 +384,29 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         """check users's cache"""
         page = ""
         lfnList, statList = self.userDict[user]
-        pfnList = os.listdir("%s/download/%s/softlinks" % (self.download, user))
+        self.makedir(user)
+        pfnList = os.listdir("%s/%s/softlinks" % (self.download, user))
         for ifile in pfnList:
-            f = "%s/download/%s/softlinks/%s" % (self.download, user, ifile)
+            f = "%s/%s/softlinks/%s" % (self.download, user, ifile)
             abspath = os.readlink(f)
             if  not os.path.isfile(abspath):
                 # we got orphan symlink
                 try:
                     os.remove(f)
-                except:
+                except Exception, _exc:
                     pass
                 continue
             fileStat = os.stat(abspath)
             fileSize = sizeFormat(fileStat[stat.ST_SIZE])
             link     = "download/%s/%s" % (user, ifile)
-            lfn      = abspath.replace(self.fmConfig.transferDir(),"")
-            msg = "<a href=\"%s/%s\">Download (%s)</a> | <a href=\"javascript:ajaxRemove('%s','%s')\">Remove</a> " % (self.url, link, fileSize, user, lfn)
-            # skip files who hold events and clean them up if they stay too long
-            if  f.find('events_dataset__') != -1:
-                cleanup(f)
-                cleanup(abspath)
-            else:
-                if  not lfnList.count(lfn):
-                    lfnList.append("%s" % lfn)
-                    statList.append(msg)
+            lfn      = abspath.replace(self.transfer_dir, "")
+            msg  = "<a href=\"%s/%s\">Download (%s)</a> |" \
+                        % (self.url, link, fileSize)
+            msg += "<a href=\"javascript:ajaxRemove('%s')\">Remove</a> " \
+                        % lfn
+            if  not lfnList.count(lfn):
+                lfnList.append("%s" % lfn)
+                statList.append(msg)
         self.userDict[user] = (lfnList, statList)
         page += self.getStat(user)
         return page
@@ -409,164 +414,152 @@ class FileMoverService(FMWSLogger, TemplatedPage):
     def setStat(self, user, _lfn=None):
         """update status of retrieving LFN"""
         statCode = -1
-        if  not self.userDict.has_key(user):
-            self.userDict[user] = ([], [])
+        self.addUser(user)
+        self.makedir(user)
         lfnList, statList = self.userDict[user]
         for idx in xrange(0, len(lfnList)):
             lfn    = lfnList[idx]
             if  _lfn and lfn != _lfn:
                 continue
             prevStat = statList[idx]
-            status = Server.status(lfn)
+            status = self.fmgr.status(lfn)
             if  status == "This LFN has not been requested yet!":
                 status = (0, 'orphan')
-	    elif status == 'Unknown status; internal error.':
+            elif status == 'Unknown status; internal error.':
                 status = (0, 'orphan')
             if  lfn.find("/") == -1:
                 statCode = 0
                 statMsg  = prevStat 
                 statList[idx] = statMsg
                 ifile = lfn
-                pfn = "%s/download/%s/%s" % (self.download, user, ifile)
+                pfn = "%s/%s/%s" % (self.download, user, ifile)
             else:
                 statCode = status[0]
                 statMsg  = status[1]
                 statList[idx] = statMsg
                 iList  = lfn.split("/")
                 ifile  = iList[-1]
-                idir   = self.fmConfig.transferDir() + '/'.join(iList[:-1])
+                idir   = self.transfer_dir + '/'.join(iList[:-1])
                 pfn    = os.path.join(idir, ifile)
             if  statCode == 0:
                 if  os.path.isfile(pfn):
-                    if  not os.path.isfile("%s/download/%s/%s" % (self.download, user, ifile)):
-			try:
-                            os.link(pfn, "%s/download/%s/%s" % (self.download, user, ifile))
-                            os.symlink(pfn, "%s/download/%s/softlinks/%s" % (self.download, user, ifile))
-			except:
-			    traceback.print_exc()
-			    pass
+                    if  not os.path.isfile("%s/%s/%s" % (self.download, user, ifile)):
+                        try:
+                            os.link(pfn, "%s/%s/%s" % (self.download, user, ifile))
+                            os.symlink(pfn, "%s/%s/softlinks/%s" % (self.download, user, ifile))
+                        except Exception, _exc:
+                            traceback.print_exc()
+                            pass
                     link     = "download/%s/%s" % (user, ifile)
-                    filepath = "%s/download/%s/%s" % (self.download, user, ifile)
+                    filepath = "%s/%s/%s" % (self.download, user, ifile)
                     fileStat = os.stat(filepath)
                     fileSize = sizeFormat(fileStat[stat.ST_SIZE])
-                    lfn      = pfn.replace(self.fmConfig.transferDir(), "")
-                    msg = "<a href=\"%s/%s\">Download (%s)</a> | <a href=\"javascript:ajaxRemove('%s','%s')\">Remove</a> " % (self.url, link, fileSize, user, lfn)
+                    lfn      = pfn.replace(self.transfer_dir, "")
+                    msg  = "<a href=\"%s/%s\">Download (%s)</a> |" \
+                                % (self.url, link, fileSize)
+                    msg += "<a href=\"javascript:ajaxRemove('%s')\">Remove</a>" % lfn
                     statList[idx] = msg
                 else:
-                    statList[idx] = "Pick event or orphan file, <a href=\"javascript:ajaxRemove('%s','%s')\">Remove</a> " % (user, lfn)
+                    msg  = "Unable to transfer"
+                    msg += "<a href=\"javascript:ajaxRemove"
+                    msg += "('%s')\">Remove</a> " % lfn
+                    statList[idx] = msg
         self.userDict[user] = (lfnList, statList)
         return statCode
-
-    def getUserName(self):
-        """
-           Get userName from stored cookie, should be run within WEBTOOLS framework
-        """
-        userName = "valya" # TMP TEST
-        header = cherrypy.request.headers
-        # TODO: remove decyptCookie
-        dn = header.get('Ssl-Client-S-Dn', None)
-        if  header.has_key('Ssl-Client-S-Dn'):
-            dn = header['Ssl-Client-S-Dn']
-            try:
-                userName = self.securityApi.getUsernameFromDN(dn)[0]['username']
-            except:
-                pass
-            if  userName:
-                return userName
-        try:
-            cookie = cherrypy.request.cookie
-            userName = decryptCookie (cookie["dn"].value, self.securityApi)
-        except:
-            traceback.print_exc()
-            pass
-        return userName
 
     def _remove(self, user, lfn):
         """remove requested LFN from the queue"""
         validate_lfn(lfn)
         ifile = lfn.split("/")[-1]
         # remove soft-link from user download area
+        userdir = "%s/%s" % (self.download, user)
         try:
-            link = "%s/download/%s/softlinks/%s" % (self.download, user, ifile)
-            os.unlink(link)
-        except:
+            link = "%s/softlinks/%s" % (userdir, ifile)
+            if  os.path.isdir(userdir):
+                os.unlink(link)
+        except Exception, _exc:
             pass
         # remove hard-link from user download area
         try:
-            link = "%s/download/%s/%s" % (self.download, user, ifile)
-            os.unlink(link)
-        except:
+            link = "%s/%s" % (userdir, ifile)
+            if  os.path.isdir(userdir):
+                os.unlink(link)
+        except Exception, _exc:
             pass
-        # now time to check if no-one else has a hardlink to pfn, if so remove pfn
+        # now time to check if no-one else has a hardlink to pfn,
+        # if so remove pfn
         try:
-            pfn = self.fmConfig.transferDir() + lfn
+            pfn = self.transfer_dir + lfn
             fstat = os.stat(pfn)
             if  int(fstat[stat.ST_NLINK]) == 1: # only 1 file exists and no other hard-links to it
                 os.remove(pfn)
-        except:
+        except Exception, _exc:
             pass
 
     @expose
-    def remove(self, user, lfn, **kwargs):
+    def remove(self, lfn, **kwargs):
         """remove requested LFN from the queue"""
         validate_lfn(lfn)
+        user = getUserName()
         cherrypy.response.headers['Content-Type'] = 'text/xml'
-        remove = getArg(kwargs, 'remove', 0)
+        force_remove = getArg(kwargs, 'force_remove', 0)
         page = ""
         self._remove(user, lfn)
-        if  not remove:
+        if  not force_remove:
             self.delLfn(user, lfn)
             page += self.getStat(user)
         return ajaxResponse(page)
 
     def tooManyRequests(self, user):
         """report that user has too many requests"""
-        page = "<p>Too many requests, you're allowed to fetch only %s LFNs at once and place only %s per day</p>" % (self.fmConfig.maxTransfer(), self.fmConfig.dayTransfer())
+        page = "<p>Too many requests, you're allowed to fetch only %s LFNs at once and place only %s per day</p>" % (self.max_transfer, self.day_transfer)
         if  self.userDictPerDay.has_key(user):
             today = time.strftime("%Y%m%d", time.gmtime(time.time()))
             nReq, day = self.userDictPerDay[user]
-            if  day != today and nReq > self.fmConfig.dayTransfer():
-                page = "<p>You are reached your request/day limit, this service allows to place only %s requests/per user/per day. If you need to transfer a large amount of data please consider using <a href=\"http://cmsweb.cern.ch/phedex/\">PhEDEx</a> service</p>" % self.fmConfig.dayTransfer()
+            if  day != today and nReq > self.day_transfer:
+                page = "<p>You are reached your request/day limit, this service allows to place only %s requests/per user/per day. If you need to transfer a large amount of data please consider using <a href=\"http://cmsweb.cern.ch/phedex/\">PhEDEx</a> service</p>" % self.day_transfer
         page += self.getStat(user)
         return ajaxResponse(page)
 
     @expose
-    def request(self, user, lfn, **kwargs):
+    def request(self, lfn, **kwargs):
         """place LFN request"""
+        user = getUserName()
+        lfn = lfn.strip() # remove spaces around lfn
+        lfn = urllib.unquote(lfn)
         validate_lfn(lfn)
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         page = getArg(kwargs, 'page', '')
-        lfn = lfn.strip() # remove spaces around lfn
         lfnStatus = self.addLfn(user, lfn)
         if  not lfnStatus:
             return self.tooManyRequests(user)
-        lfn = urllib.unquote(lfn)
         page = ""
         try:
             if  lfnStatus == 1:
-                Server.request(lfn)
+                self.fmgr.request(lfn)
                 page += "<div>Requested file:<p><em>%s</em></p> has been placed into the transfer queue</div>" % lfn
             else:
                 page += "<div>Requested file:<p><em>%s</em></p> is already in a transfer queue</div>" % lfn
             page += self.getStat(user)
-        except:
+        except Exception, _exc:
             page = self.handleExc()
             pass
         page = ajaxResponse(page)
         return page
         
     @expose
-    def cancel(self, user, lfn, **kwargs):
+    def cancel(self, lfn, **kwargs):
         """cancel LFN request"""
+        user = getUserName()
+        lfn = urllib.unquote(lfn)
         validate_lfn(lfn)
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         self.delLfn(user, lfn)
-        lfn = urllib.unquote(lfn)
         page = ""
         try:
-            Server.cancel(lfn)
+            self.fmgr.cancel(lfn)
             page = "<div>Requested file:<p><em>%s</em></p> has been discarded from the transfer queue</div>" % lfn
-        except:
+        except Exception, _exc:
             page = self.handleExc()
             pass
         page += self.getStat(user)
@@ -577,14 +570,17 @@ class FileMoverService(FMWSLogger, TemplatedPage):
     def dbsStatus(self, dbs, **kwargs):
         """report status of dbs scanning"""
         cherrypy.response.headers['Content-Type'] = 'text/xml'
+        if  dbs not in dbsinstances():
+            page = ajaxResponse("Unknown DBS instance", "_response")
+            return page
         try:
             idx  = self.dbs.dbslist.index(dbs)
-        except:
+        except Exception, _exc:
             idx = -1
             pass
         newdbs = ""
         if  idx == len(self.dbs.dbslist)-1:
-            newdbs = "no more"
+            newdbs = "no more DBS instances to scan"
         else:
             newdbs = self.dbs.dbslist[idx+1]
         page = ""
@@ -597,12 +593,13 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
 
     @expose
-    def statusOne(self, user, lfn, **kwargs):
+    def statusOne(self, lfn, **kwargs):
         """return status of requested LFN"""
-        validate_lfn(lfn)
-        cherrypy.response.headers['Content-Type'] = 'text/xml'
+        user = getUserName()
         lfn  = urllib.unquote(lfn)
         lfn  = lfn.strip()
+        validate_lfn(lfn)
+        cherrypy.response.headers['Content-Type'] = 'text/xml'
         page = ""
         spanid = spanId(lfn)
         page += """<span id="%s" name="%s">""" % (spanid, spanid)
@@ -612,8 +609,8 @@ class FileMoverService(FMWSLogger, TemplatedPage):
                 page += "<img src=\"images/loading.gif\" /> "
             page += self.getStatForLfn(user, lfn)
             if  statCode and statCode != StatusCode.TRANSFER_FAILED:
-                page += """<script type="text/javascript">setTimeout('ajaxStatusOne(\\'%s\\',\\'%s\\')',1000)</script>""" % (user, lfn)
-        except:
+                page += """<script type="text/javascript">setTimeout('ajaxStatusOne(\\'%s\\')',1000)</script>""" % lfn
+        except Exception, _exc:
             page = self.handleExc()
             pass
         page += "</span>"

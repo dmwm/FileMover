@@ -1,7 +1,14 @@
+#-*- coding: ISO-8859-1 -*-
+#pylint: disable-msg=C0103
+
+"""
+FileLookup performs look-up of files in CMS PhEDEx data-service
+"""
 
 import os
 import re
 import time
+import json
 import urllib
 import urllib2
 import threading
@@ -10,10 +17,14 @@ from ConfigParser import ConfigParser
 
 from fm.dbs.DBSInteraction import DBS
 from fm.core.MappingManager import MappingManager
-from fm.core.ActivityMonitor import Monitor
 
-def json(data_str):
-    return eval(data_str, {'null': None}, {})
+def jsonparser(data_str):
+    """JSON parser"""
+    try:
+        res = json.loads(data_str)
+    except:
+        res = eval(data_str, { "null": None, "__builtins__": None }, {})
+    return res
 
 def phedex_datasvc(query, db='prod',
         endpoint='http://cmsweb.cern.ch/phedex/datasvc', **kw):
@@ -28,18 +39,21 @@ def phedex_datasvc(query, db='prod',
     except:
         raise Exception("Failed to contact the PhEDEx datasvc")
     try:
-        return json(results)
+        return jsonparser(results)
     except:
         raise Exception("PhEDEx datasvc returned an error.")
 
 class FileLookup(MappingManager):
-
+    """Main class which perform LFN/PFN/Site/SE operations"""
     def __init__(self, cp):
         super(FileLookup, self).__init__(cp)
         self.cp = cp
         self.section = "file_lookup"
         self.priorities = self._parse_priority_rules()
-        self._dbs = DBS()
+        dbsurl = cp.get('dbs', 'url')
+        dbsinst = cp.get('dbs', 'instance')
+        dbsparams = cp.get('dbs', 'params')
+        self._dbs = DBS(dbsurl, dbsinst, dbsparams)
         self._downSites = []
         self._lastSiteQuery = 0
         self._lock = threading.Lock()
@@ -49,29 +63,32 @@ class FileLookup(MappingManager):
         self.releaseTURL = self.releaseKey
 
     def acquireTURL(self, SURL):
+        """Get TURL for provided SURL"""
         self.log.info("Looking up TURL for SURL %s." % SURL)
         TURL = self.acquireValue(SURL)
         self.log.info("Found TURL %s for SURL %s." % (TURL, SURL))
         return TURL
 
     def releaseTURL(self, SURL):
+        """Release TURL for provided SURL"""
         self.log.info("Releasing SURL %s." % SURL)
         self.releaseTURL(SURL)
 
     def replicas(self, lfn, token=None, user=None):
+        """Find LFN replicas in PhEDEx data-service"""
         self.log.info("Looking for the block of LFN %s." % lfn)
         block = self._dbs.blockLookup(lfn)
         query = {'block':block}
         self.log.info("Looking for replicas of %s" % block)
-        results = phedex_datasvc('fileReplicas', **query)
-        blocks = [i for i in results['phedex']['block'] if i.get('name', None) \
-            == block]
+        results = phedex_datasvc('fileReplicas', block=block)
+        blocks = [i for i in results['phedex']['block'] \
+                if i.get('name', None) == block]
         if not blocks:
             raise Exception("Requested LFN does not exist in any block known " \
                 "to PhEDEx.")
         block = blocks[0]
-        files = [i for i in block.get('file', []) if i.get('name', None) == \
-            lfn]
+        files = [i for i in block.get('file', []) \
+                if i.get('name', None) == lfn]
         if not files:
             raise Exception("Internal error: PhEDEx does not think LFN is in " \
                 "the same block as DBS does.")
@@ -82,18 +99,15 @@ class FileLookup(MappingManager):
         return replicas
 
     def _parse_priority_rules(self):
+        """Parse priority rules"""
         priority_dict = {} 
-        priority_dict[1e6-3] = re.compile('T2_US_Nebraska')
-        priority_dict[1e6-2] = re.compile('T1_US')
-        priority_dict[1e6-1] = re.compile('T2_US')
-        priority_dict[1e6] = re.compile('T1')
-        priority_dict[1e6+1] = re.compile('T2')
-        priority_dict[1e6+2] = re.compile('.*')
         name_regexp = re.compile('priority_([0-9]+)')
         try:
             rules = self.cp.items(self.section)
         except:
             rules = {}
+        if  not rules:
+            raise Exception("FileMover configured withot priority rules")
         for name, value in rules:
             value = value.strip()
             value = re.compile(value)
@@ -125,6 +139,7 @@ class FileLookup(MappingManager):
         return filtered_list
 
     def pickSite(self, replicas, exclude_list=None):
+        """Pick up site from provided replicases and exclude site list"""
         priorities = self.priorities.keys()
         priorities.sort()
         source = None
@@ -144,6 +159,7 @@ class FileLookup(MappingManager):
         return source
 
     def mapLFN(self, site, lfn, protocol=None):
+        """Map LFN to given site"""
         if not protocol:
             protocol = 'srmv2'
         data = {'lfn': lfn, 'node': site}
@@ -161,6 +177,7 @@ class FileLookup(MappingManager):
         return pfn
 
     def getPFN(self, lfn, protocol=None, exclude_sites=None):
+        """Get PFN for given LFN"""
 #        replicas = self.replicas(lfn)
 #        if len(replicas) == 0:
 #            raise Exception("The LFN %s has no known replicas in PhEDEx.")
@@ -184,13 +201,13 @@ class FileLookup(MappingManager):
             site = self.pickSite(replicas, exclude_sites)
         except:
             bsList = self._dbs.blockSiteLookup(lfn)
-            seList = [s for b,s in bsList]
+            seList = [s for b, s in bsList]
             site = self.getSiteFromSDB(seList)
             if  not site:
-                msg = "Fail to look-up CMS name for\n"
-                msg+= "LFN=%s\n"%lfn
-                msg+= "SE's list %s\n"%seList
-                msg+= "Please check SiteDB that those SE's are registered."
+                msg  = "Fail to look-up CMS name for\n"
+                msg += "LFN=%s\n" % lfn
+                msg += "SE's list %s\n" % seList
+                msg += "Please check SiteDB that those SE's are registered."
                 raise Exception(msg)
         pfn = self.mapLFN(site, lfn, protocol=protocol)
         self._lock.acquire()
@@ -202,18 +219,21 @@ class FileLookup(MappingManager):
             self._lock.release()
         return pfn, site
 
-    def getSiteFromSDB(self,seList):
+    def getSiteFromSDB(self, seList):
+        """
+        Get SE names for give cms names
+        """
         # try another route, get SE from DBS, look-up CMS name from SiteDB
         site = ''
         for se in seList:
             url = "https://cmsweb.cern.ch/sitedb/json/index/SEtoCMSName"
             values = {'name':se}
             data = urllib.urlencode(values)
-            req  = urllib2.Request(url,data)
+            req  = urllib2.Request(url, data)
             response = urllib2.urlopen(req)
-            the_page = response.read().replace('null','None')
-            json = eval(compile(the_page, '<string>', 'eval'))
-            mylist = [i['name'] for i in json.values() \
+            the_page = response.read().replace('null', 'None')
+            parse_sitedb_json = jsonparser(the_page)
+            mylist = [i['name'] for i in parse_sitedb_json.values() \
                                     if i['name'].find('T0_')==-1]
             mylist.sort()
             site = mylist[-1]
@@ -221,7 +241,7 @@ class FileLookup(MappingManager):
         # Do some magic for T1's. SiteDB returns names as T1_US_FNAL, while
         # phedex will need name_Buffer, according to Simon there is a 
         # savannah ticket for that.
-        if site.count('T1',0,2) == 1:
+        if site.count('T1', 0, 2) == 1:
             if site.count('Buffer') == 0 and site.count('Buffer') ==0:
                 site = "%s_Buffer" % site
         return site
@@ -230,6 +250,12 @@ class FileLookup(MappingManager):
         """
         Return the corresponding gsiftp TURL for a given SURL.
         """
+        # SURL (Storage URL, aka PFN) should be in a form
+        # <sfn|srm>://<SE_hostname>/<some_string>.root
+        pat = re.compile("(sfn|srm)://[a-zA-Z0-9].*.*root$")
+        if  pat.match(SURL):
+            raise Exception("Bad SURL: %s" % SURL)
+
         options = "-T srmv2 -b -p gsiftp"
         cmd = "lcg-getturls %s %s" % (options, SURL)
         self.log.info("Looking up TURL for %s." % SURL)
@@ -250,6 +276,3 @@ class FileLookup(MappingManager):
         """
         Release the SURL we no longer need.
         """
-
-LookupServer = FileLookup(ConfigParser())
-

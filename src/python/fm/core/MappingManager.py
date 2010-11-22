@@ -1,3 +1,5 @@
+#-*- coding: ISO-8859-1 -*-
+#pylint: disable-msg=C0103
 
 """
 Provide the MappingManager, a base class to build thread-safe resource

@@ -1,3 +1,5 @@
+#-*- coding: ISO-8859-1 -*-
+#pylint: disable-msg=C0103
 
 """
 Provides a framework for logging activities.
@@ -101,11 +103,11 @@ class Activity(ConfiguredObject):
             pretty_key = self._pretty_timestamp(key)
             output += '%s %s\n' % (pretty_key, self.activity[key])
         output += '\nCommand Output:\n'
-        def cmp2(x, y):
+        def cmp2(xxx, yyy):
             """
             Compare function for the command dictionary.
             """
-            return cmp(self.command[x][0], self.command[y][0])
+            return cmp(self.command[xxx][0], self.command[yyy][0])
         keys = self.command.keys()
         keys.sort(cmp=cmp2)
         for key in keys:

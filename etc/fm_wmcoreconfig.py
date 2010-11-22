@@ -27,6 +27,12 @@ config.FileMover.description = 'Documentation on the FileMover'
 config.FileMover.templates = environ['FILEMOVER_ROOT'] + '/src/templates'
 config.FileMover.css = environ['FILEMOVER_ROOT'] + '/src/css/fmws.css'
 
+# dbs section
+dbs = config.FileMover.section_('dbs')
+dbs.url = 'http://cmsdbsprod.cern.ch'
+dbs.instance = 'cms_dbs_prod_global'
+dbs.params = {'apiversion': 'DBS_2_0_9', 'api': 'executeQuery'}
+
 # Views are all pages 
 config.FileMover.section_('views')
 
@@ -38,52 +44,28 @@ active.documentation.object = 'WMCore.WebTools.Documentation'
 active.section_('filemover')
 active.filemover.object = 'fm.web.FileMoverService'
 
-# Controllers are standard way to return minified gzipped css and js
-#active.section_('filemovercontrollers')
-#active.filemovercontrollers.object = 'WMCore.WebTools.Controllers'
-#active.filemovercontrollers.css = {
-#    'cms_reset.css': environ['WMCORE_ROOT'] + '/src/css/WMCore/WebTools/cms_reset.css', 
-#    'fmws.css': environ['FILEMOVER_ROOT'] + '/src/css/fmws.css'
-#}
-#active.filemovercontrollers.js = {
-#    'prototype.js' : environ['FILEMOVER_ROOT'] + '/src/js/prototype.js',
-#    'rico.js' : environ['FILEMOVER_ROOT'] + '/src/js/rico.js',
-#    'utils.js' : environ['FILEMOVER_ROOT'] + '/src/js/utils.js',
-#}
-#active.filemovercontrollers.images = {
-#    'loading.gif' : environ['FILEMOVER_ROOT'] + '/src/images/loading.gif',
-#}
-# These are pages in "maintenance mode" - to be completed
-#maint = config.FileMover.views.section_('maintenance')
+# FileMover WebServer configuration
+fmws = config.FileMover.section_('fmws')
+fmws.day_transfer = 10
+fmws.verbose = 1
+fmws.max_transfer = 3
+fmws.logger_dir = '/opt/pool/logs'
+fmws.download_area = '/opt/pool/download'
 
-#active.section_('masthead')
-#active.masthead.object = 'WMCore.WebTools.Masthead'
-#active.masthead.templates = environ['WMCORE_ROOT'] + '/src/templates/WMCore/WebTools/Masthead'
+# FileManager configuration
+file_manager = config.FileMover.section_('file_manager')
+file_manager.base_directory = '/opt/pool'
+file_manager.max_size_gb = 20
+file_manager.max_movers = 5
 
-# StaticScruncher
-#active.section_('scruncher')
-# The class to load for this view/page
-#active.scruncher.object = 'StaticScruncher.Scruncher'
+# FileLookup configuration
+file_lookup = config.FileMover.section_('file_lookup')
+file_lookup.priority_2 = 'T1'
+file_lookup.priority_1 = 'T2'
+file_lookup.priority_0 = 'T1_US'
 
-# The scruncher maintains a library. Keys should be name-version and point to a 
-# directory where this code base can be found, plus a type (currently only 
-# support yui as a type)
-#library = active.scruncher.section_('library')
-#prototypejs = library.section_('prototype')
-#prototypejs.type = 'prototype'
-#prototypejs.root = environ['FILEMOVER_ROOT'] + '/src/CmsFileServer/js/prototype.js'
-#fmws = library.section_('js')
-#fmws.type = 'fmws'
-#fmws.root = environ['FILEMOVER_ROOT'] + '/src/CmsFileServer'
-#yui280 = library.section_('yui-2.8.0')
-#yui280.type = 'yui'
-#yui280.root = '/Users/vk/CMS/yui/build'
-#utilsjs = library.section_('utils')
-#utilsjs.type = 'utils'
-#utilsjs.root = environ['FILEMOVER_ROOT'] + '/src/CmsFileServer/js/utils.js'
-#fmwscss = library.section_('fmws')
-#fmwscss.type = 'fmws css'
-#fmwscss.root = environ['FILEMOVER_ROOT'] + '/src/CmsFileServer/css/fmws.css'
-#loadinggif = library.section_('images')
-#loadinggif.type = 'fmws images'
-#loadinggif.root = environ['FILEMOVER_ROOT'] + '/src/CmsFileServer/images/loading.gif'
+# Transfer wrapper command configuration
+transfer_wrapper = config.FileMover.section_('transfer_wrapper')
+#transfer_wrapper.transfer_command = 'srmcp -debug=true -srm_protocol_version=2 -retry_num=1 -streams_num=1'
+transfer_wrapper.transfer_command = 'srm-copy'
+

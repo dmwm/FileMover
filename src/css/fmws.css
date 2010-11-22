@@ -132,3 +132,7 @@ table.fmws_table td.td_left {
     background-color: #FFFF66;
     border: 1px dashed #000000;
 }
+.hline {
+    border:none;
+    border-top: 1px dotted #CCCCCC;
+}

@@ -1,28 +1,31 @@
-#!/usr/bin/env python
 #-*- coding: ISO-8859-1 -*-
-#
-# Author: Brain Bockelman
+#pylint: disable-msg=C0103
+
+"""
+FileMover utils
+"""
 
 import os
 import time
+import errno
 import signal
 import logging
+import traceback
 
 from fm.core.Status import StatusMsg, StatusCode
 from fm.core.ActivityMonitor import ActivityObject, Monitor
-from fm.core.FileLookup import LookupServer
+from fm.core.FileLookup import FileLookup
 from fm.utils.Utils import LfnInfoCache, getPercentageDone
-from fm.dbs.DBSInteraction import DBS
 
 logging.basicConfig(level=logging.INFO)
 
 class FileMover(ActivityObject):
-
+    """FileMover class"""
     def __init__(self, cp, user=None):
         super(FileMover, self).__init__()
         self.cp = cp
         self.section = "file_mover"
-        self.lookup_object = LookupServer
+        self.lookup_object = FileLookup(cp)
         self.source = None
         self.transfer_wrapper = None
         self.lfn = None
@@ -32,6 +35,7 @@ class FileMover(ActivityObject):
         self.exclude_sites = [] # keep list of sites which fail to transfer
 
     def request(self, lfn, dest_dir):
+        """Request to transfer LFN into destination dir"""
         self.lfn = lfn
         self.dest_dir = dest_dir
         dest_dir = os.path.join(dest_dir, os.path.split(lfn)[0][1:])
@@ -58,7 +62,7 @@ class FileMover(ActivityObject):
             os.makedirs(directory)
             self.log.info("Created directory %s" % directory)
         except OSError, oe: 
-            if oe.errno != 17:
+            if oe.errno != errno.EEXIST:
                 raise oe
 
     def check_cache(self):
@@ -71,6 +75,7 @@ class FileMover(ActivityObject):
         return False
 
     def start(self):
+        """Start transfer"""
         if not self.lfn:
             e = Exception("You must first request a file!")
             self.log.exception(e)
@@ -87,6 +92,7 @@ class FileMover(ActivityObject):
             self.transfer_wrapper.launch()
 
     def cancel(self):
+        """Cancel transfer"""
         if self.transfer_wrapper:
             self.log.info("Passing a cancel request from the file mover to the"\
                 " transfer wrapper.")
@@ -96,6 +102,7 @@ class FileMover(ActivityObject):
                 " started.")
 
     def status(self):
+        """Retrieve status of the transfer"""
         if self.is_cached:
             self.exclude_sites = [] # clean cached site dict
             return (StatusCode.DONE, StatusMsg.OBJECT_IN_CACHE)
@@ -120,7 +127,7 @@ class FileMover(ActivityObject):
         
 
 class TransferWrapper(ActivityObject):
-
+    """Transfer Wrapper class"""
     def __init__(self, cp, source, dest):
         self.cp = cp
         self.section = "transfer_wrapper"
@@ -131,9 +138,10 @@ class TransferWrapper(ActivityObject):
         self._killflag = False
         self.log.info("Transfer from %s to %s." % (source, dest))
         self.final_status = None
-        self.lfnInfoCache = LfnInfoCache()
+        self.lfnInfoCache = LfnInfoCache(cp)
 
     def launch(self):
+        """Launch transfer process"""
         self._launch_process()
         status = self.status()[0]
         process_running_codes = [2]
@@ -149,6 +157,7 @@ class TransferWrapper(ActivityObject):
             self.log.info("Transfer wrapper exiting due to kill flag.")
 
     def _launch_process(self, blocking=False):
+        """Internal method to launch transfer command"""
         if blocking:
             options = os.P_WAIT
         else:
@@ -167,9 +176,6 @@ class TransferWrapper(ActivityObject):
         srmcp_args = ["python", "srmcp_wrapper", "-c",
             "import os, sys; os.setpgrp(); os.execvp(sys.argv[1]," \
             " sys.argv[2:])"] + srmcp_args
-        print "\n###"
-        print options
-        print srmcp_args
         results = os.spawnlp(options, *srmcp_args)
         if blocking:
             self.status = results
@@ -177,6 +183,7 @@ class TransferWrapper(ActivityObject):
             self.pid = results
 
     def process_status(self):
+        """Find transfer status"""
         if not self.pid:
             raise Exception("Process was not started!")
         status = os.waitpid(self.pid, os.WNOHANG)
@@ -189,6 +196,7 @@ class TransferWrapper(ActivityObject):
         raise Exception("Unable to determine job status!")
 
     def file_progress_status(self):
+        """Retrieve status of the file transfer"""
         if self.dest.startswith('file:///'):
             dest = self.dest[7:]
         else:
@@ -196,8 +204,7 @@ class TransferWrapper(ActivityObject):
         try:
             stat = os.stat(dest)
         except OSError, oe:
-            if oe.errno == 2:
-#                return "SRM portion of transfer still going"
+            if oe.errno == errno.ENOENT:
                 return StatusMsg.WAITING_FOR_SRM
             else:
                 raise
@@ -207,17 +214,16 @@ class TransferWrapper(ActivityObject):
         else:
             perc = ""
             try: 
-               baseDir = self.cp.get('file_manager', 'base_directory')
-               myLfn = dest.replace("file://", "").replace(baseDir, "")
-               perc = "%s%%," % getPercentageDone(size,
+                baseDir = self.cp.get('file_manager', 'base_directory')
+                myLfn = dest.replace("file://", "").replace(baseDir, "")
+                perc = "%s%%," % getPercentageDone(size,
                    self.lfnInfoCache.getSize(myLfn))
             except:
-#               import traceback
-#               traceback.print_exc()
-               pass
+                pass
             return StatusMsg.IN_PROGRESS % (perc, round(size/1024.0**2))
 
     def status(self):
+        """Return file transfer status"""
         if self.final_status:
             return self.final_status
         if not self.pid:
@@ -247,7 +253,10 @@ class TransferWrapper(ActivityObject):
             dest = self.dest
         if os.path.exists(dest):
             self.log.info("Unlinking partially complete dest file %s." % dest)
-            os.unlink(dest)
+            try:
+                os.unlink(dest)
+            except:
+                traceback.print_exc()
         else:
             self.log.info("Destination path %s doesn't exist; not deleting." % \
                 dest)

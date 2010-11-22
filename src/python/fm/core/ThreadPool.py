@@ -1,12 +1,17 @@
+#-*- coding: ISO-8859-1 -*-
+#pylint: disable-msg=C0103
+
+"""
+FileMover ThreadPool class
+"""
 
 import time
-
 import threading
 
 from fm.core.ConfiguredObject import ConfiguredObject
 
 class ThreadPool(ConfiguredObject):
-
+    """Basic thread pool class"""
     def __init__(self, evaluate=None, threads=5):
         super(ThreadPool, self).__init__()
         if evaluate:
@@ -25,10 +30,11 @@ class ThreadPool(ConfiguredObject):
             self._threadpool.append(t)
 
     def evaluate(self, queue):
-        object = queue.pop(0)
-        return object
+        """Get task from the queue"""
+        return queue.pop(0)
 
     def queue(self, object):
+        """Task queue"""
         if self._graceful:
             raise Exception("Cannot queue - we are currently draining.")
         self.log.info("Adding object %s to queue." % object)
@@ -38,9 +44,11 @@ class ThreadPool(ConfiguredObject):
         self._pool_cond.release()
 
     def _get_name(self):
+        """Get thread name"""
         return threading.currentThread().getName()
 
     def thread_runner(self):
+        """Run thread"""
         while not self._killflag:
             self.log.info("Starting loop for %s." % self._get_name())
             self._pool_cond.acquire()
@@ -66,6 +74,8 @@ class ThreadPool(ConfiguredObject):
                 self.log.info("Starting object %s on thread %s." % \
                     (object, self._get_name()))
                 object.start()
+                self.log.info("Object %s on thread %s has exited." % (object,
+                    self._get_name()))
                 del self._thread_map[self._get_name()]
             except Exception, e:
                 self.log.exception(e)
@@ -74,12 +84,15 @@ class ThreadPool(ConfiguredObject):
         self.log.info("Exiting due to stop flag.")
 
     def kill(self):
+        """Set kill flag"""
         self._killflag = True
 
     def drain(self):
+        """Set drain flag"""
         self._graceful = True
 
     def join(self):
+        """Join the task"""
         for t in self._threadpool:
             try:
                 while t.isAlive():
@@ -96,6 +109,7 @@ class ThreadPool(ConfiguredObject):
                             " clean up their activities, then will exit.")
                         time.sleep(4)
                         raise
+                    self.log.debug("%s is still alive." % t.getName())
             except:
                 self.kill()
                 raise
