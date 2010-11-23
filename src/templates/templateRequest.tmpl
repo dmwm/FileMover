@@ -1,0 +1,14 @@
+
+<!-- templateRequest -->
+<div>Requested file:<p><em>$lfn</em></p> 
+#if $msg == "requested"
+has been placed into the transfer queue
+#end if
+#if $msg == "in_queue"
+is already in a transfer queue
+#end if
+#if $msg == "discarded"
+has been discarded from the transfer queue
+#end if
+</div>
+<!-- end of templateRequest -->

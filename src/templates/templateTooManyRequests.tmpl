@@ -1,0 +1,15 @@
+
+<!-- templateTooManyRequests -->
+#if $fulldesc
+<p>You are reached your request/day limit, this service allows to place only 
+$day_transfer requests/per user/per day. If you need to transfer a large amount
+of data please consider using 
+<a href=\"http://cmsweb.cern.ch/phedex/\">PhEDEx</a> service</p>
+#else
+<p>
+Too many requests, you're allowed to fetch only 
+$max_transfer LFNs at once and place only $day_transfer per 
+day
+</p>
+#end if
+<!-- end of templateTooManyRequests -->

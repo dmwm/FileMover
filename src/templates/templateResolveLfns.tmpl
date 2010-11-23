@@ -1,0 +1,19 @@
+
+<!-- templateResolveLfns -->
+#if not $lfnList
+No lfns found for your criteria
+#else
+Found the following list of lfns:<br/>
+<table class="normal">
+#for lfn, size in $lfnList:
+   <tr>
+   <td>$lfn</td>
+   <td>$size</td>
+   <td><a href="javascript:ajaxRequest('$lfn')">request</a>
+   </td>
+   </tr>
+#end for
+</table>
+#end if
+<script type="text/javascript">clearInterval()</script>
+<!-- end of templateResolveLfns -->

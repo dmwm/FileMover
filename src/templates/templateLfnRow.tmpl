@@ -1,0 +1,18 @@
+
+<!-- templateLfnRow -->
+<tr $style>
+<td class="td_left">
+$lfn
+</td>
+<td align="right">
+<span id="$spanid">$fstat</span>
+</td>
+</tr>
+<script type="text/javascript">
+var lfnUpdater = new Updater('$spanid');
+ajaxEngine.registerAjaxObject('$spanid', lfnUpdater);
+</script>
+#if $fstat
+<script type="text/javascript">setTimeout('ajaxStatusOne(\'${lfn}\')',1000)</script>
+#end if
+<!-- end of templateLfnRow -->
