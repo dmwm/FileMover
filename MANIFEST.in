@@ -5,5 +5,5 @@ recursive-include src/js *.js
 recursive-include test *_t.py
 recursive-include doc *
 recursive-include bin *
-recursive-include etc fmws.cfg
+recursive-include etc fm_wmcoreconfig.py
 include *.py

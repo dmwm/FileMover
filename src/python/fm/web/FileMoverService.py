@@ -150,24 +150,6 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         self.userDictPerDay = {}
         self.url            = "/filemover"
 
-        FMWSLogger.__init__(self, self.fmConfig.logger_dir, 
-                "FMWSServer", self.verbose)
-        setLogger('cherrypy.access', 
-                super(FileMoverService, self).getHandler(),
-                super(FileMoverService, self).getLogLevel())
-        setLogger('cherrypy.error', 
-                super(FileMoverService, self).getHandler(), 
-                super(FileMoverService, self).getLogLevel())
-        setLogger('ThreadPool', 
-                super(FileMoverService, self).getHandler(), 
-                super(FileMoverService, self).getLogLevel())
-        setLogger('TransferWrapper', 
-                super(FileMoverService, self).getHandler(), 
-                super(FileMoverService, self).getLogLevel())
-        setLogger('FileLookup', 
-                super(FileMoverService, self).getHandler(), 
-                super(FileMoverService, self).getLogLevel())
-
         # internal settings
         self.base   = '' # defines base path for HREF in templates
         self.imgdir = '%s/%s' % (__file__.rsplit('/', 1)[0], 'images')
@@ -202,7 +184,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
 
     def handleExc(self):
         """exception handler"""
-        self.writeLog(traceback.format_exc())
+        traceback.print_exc()
         page  = "<div>Request failed</div>"
         return page
 

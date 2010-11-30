@@ -130,13 +130,13 @@ to request/transfer data via web interface to local disk.
 """
 author       = ["Valentin Kuznetsov", "Brian Bockelman"],
 author_email = ["vkuznet@gmail.com", "bbockelm@math.unl.edu"],
-scriptfiles  = filter(os.path.isfile, ['etc/fmws.cfg'])
+scriptfiles  = filter(os.path.isfile, ['etc/fm_wmcoreconfig.py'])
 url          = "https://twiki.cern.ch/twiki/bin/viewauth/CMS/FileMover",
 keywords     = ["FileMover", "transfer"]
 package_dir  = {'FileMover': 'src/python/FileMover'}
 packages     = find_packages('src/python')
 data_files   = [
-                ('FileMover/etc', ['etc/fmws.cfg']),
+                ('FileMover/etc', ['etc/fm_wmcoreconfig.py']),
                 ('FileMover/test', datafiles('test')),
                 ('FileMover/web/js', datafiles('src/js')),
                 ('FileMover/web/css', datafiles('src/css')),
