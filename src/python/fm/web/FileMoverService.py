@@ -15,7 +15,7 @@ import traceback
 
 # CherryPy/Cheetah modules
 import cherrypy
-from   cherrypy import expose, response, tools
+from   cherrypy import expose, response, tools, HTTPError
 from   cherrypy.lib.static import serve_file
 from   cherrypy import config as cherryconf
 
@@ -32,14 +32,51 @@ from WMCore.WebTools.Page import TemplatedPage
 
 CODES = {'valid': 0, 'too_many_request': 1, 'too_many_lfns': 2}
 
-def getUserName():
+def checkarg(kwds, arg, atype=str):
+    """Check arg in a dict that it has provided type"""
+    return kwds.has_key(arg) and isinstance(kwds[arg], atype)
+
+def checkargs(func):
     """
-    Get userName from stored cookie, should be run within WEBTOOLS framework
+    Decorator to check arguments in provided supported list for DAS servers
     """
-    userName = "tmp_test" # TMP TEST
-    header = cherrypy.request.headers
-    dn = header.get('Ssl-Client-S-Dn', None)
-    return userName
+    @expose
+    def wrapper(self, *args, **kwds):
+        """Wrap input function"""
+        supported = ['lfn', 'dataset', 'run', 'minEvt', 'maxEvt', 'dbs', '_']
+        if  not kwds:
+            if  args:
+                kwds = args[-1]
+        keys = []
+        if  kwds:
+            keys = [i for i in kwds.keys() if i not in supported]
+        if  keys:
+            raise HTTPError(500, 'Unsupported key')
+        if  checkarg(kwds, 'lfn'):
+            try:
+                validate_lfn(kwds.get('lfn'))
+            except:
+                raise HTTPError(500, 'Unsupported LFN')
+        if  checkarg(kwds, 'dataset'):
+            pat = re.compile('/.*/.*/.*')
+            if  not pat.match(kwds.get('dataset')):
+                raise HTTPError(500, 'Unsupported dataset')
+        if  checkarg(kwds, 'run'):
+            pat = re.compile('[0-9]{3}.*')
+            if  not pat.match(kwds.get('run')):
+                raise HTTPError(500, 'Unsupported run')
+        for evt in ['minEvt', 'maxEvt']:
+            if  checkarg(kwds, evt):
+                pat = re.compile('[0-9]{3}.*')
+                if  not pat.match(kwds.get(evt)):
+                    raise HTTPError(500, 'Unsupported event')
+        if  checkarg(kwds, 'dbs'):
+            pat = re.compile('dbs_.*')
+            if  not pat.match(kwds.get('dbs')):
+                raise HTTPError(500, 'Unsupported dbs instance')
+        data = func (self, *args, **kwds)
+        return data
+    return wrapper
 
 def check_scripts(scripts, imap, path):
     """
@@ -105,7 +142,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         self.max_transfer   = self.fmConfig.max_transfer
         self.file_manager   = config.section_('file_manager')
         self.transfer_dir   = self.file_manager.base_directory
-        self.download       = self.fmConfig.download_area
+        self.download_dir   = self.fmConfig.download_area
         self.fmgr = FileManager()
         self.fmgr.configure(fm_config(config))
         self.voms_timer     = 0
@@ -169,11 +206,31 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         page  = "<div>Request failed</div>"
         return page
 
+#    @expose
+#    @tools.secmodv2()
+#    def index(self):
+#        """default service method"""
+#        page = self.getTopHTML()
+#        user = cherrypy.request.user['dn']
+#        print "\n### USER", user
+#        self.addUser(user)
+#        page += self.userForm(user)
+#        page += getBottomHTML()
+#        return page
+
+    @expose
+#    @tools.secmodv2()
+    def getUserName(self):
+        """Get userName from cherrypy header"""
+#        return cherrypy.request.user['dn']
+        # TODO: need to get DN from FrontEndAuth module.
+        return "test"
+
     @expose
     def index(self):
         """default service method"""
         page = self.getTopHTML()
-        user = getUserName()
+        user = self.getUserName()
         self.addUser(user)
         page += self.userForm(user)
         page += getBottomHTML()
@@ -187,7 +244,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
     def makedir(self, user):
         """Create user dir structure on a server"""
         try:
-            os.makedirs("%s/%s/softlinks" % (self.download, user))
+            os.makedirs("%s/%s/softlinks" % (self.download_dir, user))
         except Exception as _exc:
             pass
 
@@ -206,7 +263,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             if  style:
                 style = ""
             else:
-                style = "class=\"zebra\""
+                style = "zebra"
             spanid = spanId(lfn)
             page += self.templatepage('templateLfnRow', style=style, lfn=lfn, \
                 spanid=spanid, fstat=fstat)
@@ -218,8 +275,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             iList, sList = self.userDict[user]
         except Exception as _exc:
             return ""
-        page = self.templatepage('templateStatTable', \
-                content=self.LfnRows(iList, sList))
+        page = self.LfnRows(iList, sList)
         return page
         
     def getStatForLfn(self, user, lfn):
@@ -230,7 +286,6 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         try:
             idx    = lfnList.index(lfn)
             fstat  = statList[idx]
-#            spanid = spanId(lfn)
             page  += """%s""" % fstat
             if  fstat.find("Download") == -1:
                 page += " | <a href=\"javascript:ajaxCancel('%s')\">Cancel</a>"\
@@ -242,8 +297,10 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         
     def userForm(self, user):
         """page forms"""
-        page = self.templatepage('templateForm', 
-                user=user, cache=self.checkUserCache(user))
+        page = self.templatepage('templateForm', user=user)
+        page += '<div id="_response">'
+        page += self.checkUserCache(user)
+        page += '</div>'
         return page
 
     def ajaxResponse(self, msg, tag="_response", element="object"):
@@ -251,11 +308,12 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         res = self.templatepage('templateAjaxResponse', \
                 element=element, tag=tag, msg=msg)
-        print "\n### ajax\n", res
+#        print "\n### ajax\n", res
         return res
 
     @expose
-    def resolveLfn(self, dataset, run, minEvt, maxEvt, branch, **_kwargs):
+    @checkargs
+    def resolveLfn(self, dataset, run, minEvt, maxEvt, **_kwargs):
         """look-up LFNs in DBS upon user request"""
         if  not minEvt:
             evt = ""
@@ -263,7 +321,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             evt = minEvt
         else:
             evt = (minEvt, maxEvt)
-        lfnList = self.dbs.getFiles(run, dataset, evt, branch)
+        lfnList = self.dbs.getFiles(run, dataset, evt)
         page = self.templatepage('templateResolveLfns', lfnList=lfnList)
         page = self.ajaxResponse(page)
         return page
@@ -277,7 +335,6 @@ class FileMoverService(FMWSLogger, TemplatedPage):
                 count += 1
         return  count
         
-#    def addLfn(self, user, lfn, **kwargs):
     def addLfn(self, user, lfn):
         """add LFN request to the queue"""
         validate_lfn(lfn)
@@ -322,12 +379,12 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         page = ""
         lfnList, statList = self.userDict[user]
         self.makedir(user)
-        pfnList = os.listdir("%s/%s/softlinks" % (self.download, user))
+        pfnList = os.listdir("%s/%s/softlinks" % (self.download_dir, user))
         for ifile in pfnList:
-            f = "%s/%s/softlinks/%s" % (self.download, user, ifile)
+            f = "%s/%s/softlinks/%s" % (self.download_dir, user, ifile)
             abspath = os.readlink(f)
             if  not os.path.isfile(abspath):
-                # we got orphan symlink
+                # we got orphan link
                 try:
                     os.remove(f)
                 except Exception as _exc:
@@ -369,7 +426,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
                 statMsg  = prevStat 
                 statList[idx] = statMsg
                 ifile = lfn
-                pfn = "%s/%s/%s" % (self.download, user, ifile)
+                pfn = "%s/%s/%s" % (self.download_dir, user, ifile)
             else:
                 statCode = status[0]
                 statMsg  = status[1]
@@ -381,16 +438,16 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             if  statCode == 0:
                 if  os.path.isfile(pfn):
                     if  not os.path.isfile("%s/%s/%s" \
-                        % (self.download, user, ifile)):
+                        % (self.download_dir, user, ifile)):
                         try:
                             os.link(pfn, "%s/%s/%s" \
-                                % (self.download, user, ifile))
+                                % (self.download_dir, user, ifile))
                             os.symlink(pfn, "%s/%s/softlinks/%s" \
-                                % (self.download, user, ifile))
+                                % (self.download_dir, user, ifile))
                         except Exception as _exc:
                             traceback.print_exc()
                     link     = "download/%s/%s" % (user, ifile)
-                    filepath = "%s/%s/%s" % (self.download, user, ifile)
+                    filepath = "%s/%s/%s" % (self.download_dir, user, ifile)
                     fileStat = os.stat(filepath)
                     fileSize = sizeFormat(fileStat[stat.ST_SIZE])
                     lfn      = pfn.replace(self.transfer_dir, "")
@@ -411,8 +468,8 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         """remove requested LFN from the queue"""
         validate_lfn(lfn)
         ifile = lfn.split("/")[-1]
+        userdir = "%s/%s" % (self.download_dir, user)
         # remove soft-link from user download area
-        userdir = "%s/%s" % (self.download, user)
         try:
             link = "%s/softlinks/%s" % (userdir, ifile)
             if  os.path.isdir(userdir):
@@ -438,10 +495,11 @@ class FileMoverService(FMWSLogger, TemplatedPage):
             pass
 
     @expose
+    @checkargs
     def remove(self, lfn, **kwargs):
         """remove requested LFN from the queue"""
         validate_lfn(lfn)
-        user = getUserName()
+        user = self.getUserName()
         force_remove = getArg(kwargs, 'force_remove', 0)
         page = ""
         self._remove(user, lfn)
@@ -466,9 +524,10 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return self.ajaxResponse(page)
 
     @expose
+    @checkargs
     def request(self, lfn, **kwargs):
         """place LFN request"""
-        user = getUserName()
+        user = self.getUserName()
         lfn = lfn.strip() # remove spaces around lfn
         lfn = urllib.unquote(lfn)
         validate_lfn(lfn)
@@ -492,9 +551,10 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
         
     @expose
+    @checkargs
     def cancel(self, lfn, **_kwargs):
         """cancel LFN request"""
-        user = getUserName()
+        user = self.getUserName()
         lfn = urllib.unquote(lfn)
         validate_lfn(lfn)
         self.delLfn(user, lfn)
@@ -510,6 +570,7 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
 
     @expose
+    @checkargs
     def dbsStatus(self, dbs, **_kwargs):
         """report status of dbs scanning"""
         if  dbs not in dbsinstances():
@@ -536,9 +597,10 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
 
     @expose
+    @checkargs
     def statusOne(self, lfn, **_kwargs):
         """return status of requested LFN"""
-        user = getUserName()
+        user = self.getUserName()
         lfn  = urllib.unquote(lfn)
         lfn  = lfn.strip()
         validate_lfn(lfn)
@@ -560,6 +622,15 @@ class FileMoverService(FMWSLogger, TemplatedPage):
         return page
 
     @expose
+    def download(self, *args, **_kwargs):
+        """Server FileMover download area"""
+        ctype = 'application/octet-stream'
+        path  = '%s/%s/%s' % (self.download_dir, args[0], args[1])
+        if  os.path.isfile(path):
+            return serve_file(path, content_type=ctype)
+        raise HTTPError(500, 'File not found')
+
+    @expose
     def images(self, *args, **_kwargs):
         """
         Serve static images.
@@ -576,7 +647,9 @@ class FileMoverService(FMWSLogger, TemplatedPage):
                 # use image extension to pass correct content type
                 ctype = 'image/%s' % image.split('.')[-1]
                 cherrypy.response.headers['Content-type'] = ctype
-                return serve_file(image, content_type=ctype)
+                if  os.path.isfile(image):
+                    return serve_file(image, content_type=ctype)
+                raise HTTPError(500, 'Image file not found')
 
     @expose
     @tools.gzip()

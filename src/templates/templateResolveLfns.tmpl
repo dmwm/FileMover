@@ -1,4 +1,4 @@
-
+#from fm.utils.Utils import quote
 <!-- templateResolveLfns -->
 #if not $lfnList
 No lfns found for your criteria
@@ -6,6 +6,8 @@ No lfns found for your criteria
 Found the following list of lfns:<br/>
 <table class="normal">
 #for lfn, size in $lfnList:
+#set lfn=$quote($lfn)
+#set size=$quote($size)
    <tr>
    <td>$lfn</td>
    <td>$size</td>

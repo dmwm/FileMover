@@ -1,6 +1,13 @@
-
+#from fm.utils.Utils import quote
+#set style=$quote($style)
+#set spanid=$quote($spanid)
+#set fstat=$quote($fstat)
+#set lfn=$quote($lfn)
 <!-- templateLfnRow -->
-<tr $style>
+<br />
+<div>
+<table class="fmws_table">
+<tr class="$style">
 <td class="td_left">
 $lfn
 </td>
@@ -15,4 +22,6 @@ ajaxEngine.registerAjaxObject('$spanid', lfnUpdater);
 #if $fstat
 <script type="text/javascript">setTimeout('ajaxStatusOne(\'${lfn}\')',1000)</script>
 #end if
+</table>
+</div>
 <!-- end of templateLfnRow -->

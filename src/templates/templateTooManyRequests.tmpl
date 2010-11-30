@@ -1,10 +1,12 @@
-
+#from fm.utils.Utils import quote
+#set day_transfer=$quote($day_transfer)
+#set max_transfer=$quote($max_transfer)
 <!-- templateTooManyRequests -->
 #if $fulldesc
 <p>You are reached your request/day limit, this service allows to place only 
 $day_transfer requests/per user/per day. If you need to transfer a large amount
 of data please consider using 
-<a href=\"http://cmsweb.cern.ch/phedex/\">PhEDEx</a> service</p>
+<a href="/phedex/">PhEDEx</a> service</p>
 #else
 <p>
 Too many requests, you're allowed to fetch only 

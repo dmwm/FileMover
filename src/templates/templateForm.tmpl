@@ -1,4 +1,5 @@
-
+#from fm.utils.Utils import quote
+#set user=$quote($user)
 <!-- templateForm -->
 <hr class="hline" />
 Hello ${user}
@@ -75,46 +76,7 @@ Hello ${user}
 
 </div> <!-- end of form_files -->
 
-<div id="form_events" name="form_events" class="hide">
-
-<form action="javascript:ajaxGetEvent('${user}');EFormAction('disabled')" method="get">
-
-<span class="heading">Request file with given dataset/run/event/lumi</span>
-<span class="redsmall">(this service is currently limited to real data located at CERN, srm-cms.cern.ch)</span>
-<ul style="list-style-type: none;">
-<li>Your Email (to be notified upon completion)</li>
-<ul style="list-style-type: none;">
-<li>
-<input id="eform_email" name="eform_email" type="text" size="50" />
-</li>
-</ul>
-<li>dataset</li>
-<ul style="list-style-type: none;">
-<li>
-<input id="eform_dataset" name="eform_dataset" type="text" size="50" />
-</li>
-</ul>
-<li></li>
-<li>
-event sets: <em>run event lumi</em> (one per line)
-</li>
-<ul style="list-style-type: none;">
-<li>
-<textarea id="eform_eventset" name="eform_eventset" cols="30" rows="10"></textarea>
-</li>
-</ul>
-<li>&nbsp;</li>
-<li>
-<input id="eform_submit" name="eform_submit" type="submit" value="Request" />
-<input id="eform_reset" name="eform_reset" type="reset" value="Reset" />
-</li>
-</ul>
-</form>
-
-</div> <!-- end of form_events -->
-
 <hr class="hline" />
-<div id="_response">${cache}</div>
 
 <!-- end of templiateForm -->
 

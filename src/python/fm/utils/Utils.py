@@ -10,10 +10,11 @@ Set of commonly used utilities
 import os
 import re
 import sys
+import cgi
 import stat
+import time
 import urllib
 import urllib2
-import time
 import traceback
 from subprocess import PIPE, Popen
 
@@ -21,6 +22,16 @@ SENDMAIL = "/usr/sbin/sendmail" # sendmail location
 #Natural sorting,http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/285264
 digitsre = re.compile(r'\d+')         # finds groups of digits
 D_LEN = 3
+
+def quote(data):
+    """
+    Sanitize the data using cgi.escape.
+    """
+    if  isinstance(data, int) or isinstance(data, float):
+        res = data
+    else:
+        res = cgi.escape(str(data), quote=True)
+    return res
 
 def decor(s):
     '''decorate function for sorting alphanumeric strings naturally'''

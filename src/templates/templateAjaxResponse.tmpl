@@ -1,3 +1,7 @@
+#from fm.utils.Utils import quote
+#set element=$quote($element)
+#set tag=$quote($tag)
+## The $msg here is already sanitized by other templates.
 <ajax-response>
 <response type="$element" id="$tag">
 #if $element == "element"

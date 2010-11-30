@@ -18,14 +18,10 @@ config.Webtools.application = 'FileMover'
 config.component_('FileMover')
 
 # Define the default location for templates for the app
-config.FileMover.templates = os.path.join(getWMBASE(), '/src/templates/WMCore/WebTools')
+config.FileMover.templates = environ['FM_TMPLPATH']
 config.FileMover.admin = 'vkuznet@gmail.com'
 config.FileMover.title = 'CMS FileMover Documentation'
 config.FileMover.description = 'Documentation on the FileMover'
-
-# Define the default location for templates for the app
-config.FileMover.templates = environ['FILEMOVER_ROOT'] + '/src/templates'
-config.FileMover.css = environ['FILEMOVER_ROOT'] + '/src/css/fmws.css'
 
 # dbs section
 dbs = config.FileMover.section_('dbs')
@@ -68,4 +64,15 @@ file_lookup.priority_0 = 'T1_US'
 transfer_wrapper = config.FileMover.section_('transfer_wrapper')
 #transfer_wrapper.transfer_command = 'srmcp -debug=true -srm_protocol_version=2 -retry_num=1 -streams_num=1'
 transfer_wrapper.transfer_command = 'srm-copy'
+
+# Security module stuff
+config.component_('SecurityModule')
+config.SecurityModule.key_file = '/Users/vk/tmp/apache/install_2.2.6/binkey'
+config.SecurityModule.store = 'filestore'
+config.SecurityModule.store_path = '/tmp/security-store'
+config.SecurityModule.mount_point = 'auth'
+#config.CernOpenID.store.database = 'sqlite://'
+config.SecurityModule.session_name = 'SecurityModule'
+config.SecurityModule.oid_server = 'http://localhost:8400/'
+config.SecurityModule.handler = 'WMCore.WebTools.OidDefaultHandler'
 
