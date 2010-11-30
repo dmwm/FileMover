@@ -21,7 +21,6 @@ from   cherrypy import config as cherryconf
 
 # FileMover modules
 from   fm.utils.FMWSConfig  import fm_config
-from   fm.utils.FMWSLogger  import FMWSLogger, setLogger
 from   fm.core.FileManager import FileManager, validate_lfn
 from   fm.core.Status import StatusCode
 from   fm.dbs.DBSInteraction import DBS, dbsinstances
@@ -129,7 +128,7 @@ def spanId(lfn):
     """assign id for span tag based on provided lfn"""
     return lfn.split("/")[-1].replace(".root","")
 
-class FileMoverService(FMWSLogger, TemplatedPage):
+class FileMoverService(TemplatedPage):
     """FileMover web-server based on CherryPy"""
     def __init__(self, config):
         TemplatedPage.__init__(self, config)
