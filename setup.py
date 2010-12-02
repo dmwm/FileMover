@@ -133,15 +133,15 @@ author_email = ["vkuznet@gmail.com", "bbockelm@math.unl.edu"],
 scriptfiles  = filter(os.path.isfile, ['etc/fm_wmcoreconfig.py'])
 url          = "https://twiki.cern.ch/twiki/bin/viewauth/CMS/FileMover",
 keywords     = ["FileMover", "transfer"]
-package_dir  = {'FileMover': 'src/python/FileMover'}
+package_dir  = {'fm': 'src/python/fm'}
 packages     = find_packages('src/python')
 data_files   = [
-                ('FileMover/etc', ['etc/fm_wmcoreconfig.py']),
-                ('FileMover/test', datafiles('test')),
-                ('FileMover/web/js', datafiles('src/js')),
-                ('FileMover/web/css', datafiles('src/css')),
-                ('FileMover/web/images', datafiles('src/images')),
-                ('FileMover/web/templates', datafiles('src/templates')),
+                ('fm/etc', ['etc/fm_wmcoreconfig.py']),
+                ('fm/test', datafiles('test')),
+                ('fm/web/js', datafiles('src/js')),
+                ('fm/web/css', datafiles('src/css')),
+                ('fm/web/images', datafiles('src/images')),
+                ('fm/web/templates', datafiles('src/templates')),
                ]
 license      = "CMS experiment software"
 classifiers  = [

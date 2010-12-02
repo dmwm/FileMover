@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-CmsFileServer suit
+CMS FileMover Service
 """
 __author__ = "Brian Bockelman and Valentin Kuznetsov"
-version = "1.0.0"
+version = "1.0.1"
