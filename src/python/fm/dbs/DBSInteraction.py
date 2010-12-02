@@ -84,14 +84,6 @@ class DBS(object):
         else:
             return parseDBSoutput_DBS_2_0_6(data)
 
-    def getlfn(self, lfn):
-        """Get LFN file info"""
-        return self.getfile_info(lfn, pattern="=%s")
-
-    def getguid(self, guid):
-        """Get GUID info"""
-        return self.getfile_info(guid, pattern="like *%s*")
-
     def getfile_info(self, guid, pattern="like *%s*"):
         """Get file info"""
         if guid in self.known_lfns:
@@ -242,12 +234,6 @@ class DBS(object):
                 pass
         return fileList
 
-    def getFilesForRun(self, run):
-        """
-        Return list of lfns for given run
-        """
-        return self.getFiles(run)
-      
 def parseDBSoutput(data):
     """
     Parse DBS XML output
@@ -277,20 +263,3 @@ def parseDBSoutput(data):
             oList.append(node.getAttribute('APPVERSION_VERSION'))
     return oList
 
-def dbsinst():
-    """get list of DBS instances from DBS Registration Service"""
-    # DBS imports
-    from   RS.Wrapper import RegService
-    dbslist = []
-    try :
-        api = RegService()
-        result = api.queryRegistrationFindAll()
-        for i in result:
-            dbslist.append( (i._alias, i._url, i._accountName) )
-        #result = api.queryRegistrationFindByAlias("Prod_Global")
-        #for i in result:
-                #printReg(i)
-    except:
-        traceback.print_exc()
-        raise
-    return dbslist
