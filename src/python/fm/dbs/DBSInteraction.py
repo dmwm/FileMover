@@ -177,41 +177,6 @@ class DBS(object):
                 return blockList
         return []
 
-    def getTiers(self):
-        """
-        Return list of tiers registered in DBS
-        """
-  #      query  = "find tier where tier like *"
-        query  = "find dataset.tier"
-        params = dict(self.params)
-        params['query'] = query
-        dbsurl = self.getdbsurl(self.dbs)
-        data = urllib2.urlopen(dbsurl, urllib.urlencode(params,
-            doseq=True)).read()
-#        tierList = parseDBSoutput(data)
-        tierList = self.dbsparser(self.dbs, data)
-        return tierList
-
-    def getRelease(self, lfn):
-        """
-        Return release name for given lfn
-        """
-        query = 'find file.release where file = %s' % lfn
-        params = dict(self.params)
-        params['query'] = query
-        rel = ''
-        for dbs in self.dbslist:
-            try:
-                dbsurl = self.getdbsurl(dbs)
-                data = urllib2.urlopen(dbsurl, 
-                               urllib.urlencode(params, doseq=True)).read()
-                rel = self.dbsparser(dbs, data)
-                if  rel and isinstance(rel, list) and len(rel) == 1: 
-                    return rel[0]
-            except:
-                pass
-        return ''
-        
     def getFiles(self, run=None, dataset=None, evt=None, lumi=None,
                        branchList=None, site=None, verbose=0):
         """
@@ -329,67 +294,3 @@ def dbsinst():
         traceback.print_exc()
         raise
     return dbslist
-
-#
-# main
-#
-def main():
-    """main test"""
-    print "TEST DBS RS"
-    try:
-        print dbsinst()
-    except:
-        traceback.print_exc()
-    dbsInst = 'cms_dbs_prod_global'
-    dbsUrl = 'http://cmsdbsprod.cern.ch'
-    params = {'apiversion': 'DBS_2_0_9', 'api': 'executeQuery'}
-    dbscls = DBS(dbsUrl, dbsInst, params)
-    dbsver = dbscls.getDBSversion(dbsInst)
-    print "DBS instance %s, version %s" % (dbsInst, dbsver)
-    try:
-        dbscls.getFiles() # should fail
-    except:
-        pass
-    run = 16288
-    dataset = "/testbeam_HCalEcalCombined/h2tb2007_default_v1/DIGI-RECO"
-    evt = 44000
-    print "Files for run", run
-    print dbscls.getFiles(run)
-    print "Files for run %s, dataset %s, event %s." % (run, dataset, evt)
-    print dbscls.getFiles(run, dataset, evt)
-    evt = 10
-    print "Files for run %s, dataset %s, event %s." % (run, dataset, evt)
-    print dbscls.getFiles(run, dataset, evt)
-    print dbscls.getTiers()
-    lfn = "/store/data/h2tb2007/testbeam_HCalEcalCombined/RAW/default_v1/h2.00016290.0007.edm.storageManager.0.0000.root"
-    lfn = "/store/users/nicola/Higgs_Acc_skim/CMSSW_1_6_7-2e2mu_Acc_Skim-Higgs200_ZZ_4l/NicolaDeFilippis/CMSSW_1_6_7-2e2mu_Acc_Skim-Higgs200_ZZ_4l_5c27d4348c2bedf8f6bf4b44cf249da5/hzz4l_RECOSIM_9.root"
-    print "\n### LOOKUP block for LFN", lfn
-    print dbscls.blockLookup(lfn)
-    print dbscls.blockSiteLookup(lfn)
-    print dbscls.getRelease(lfn)
-
-#    dataset = '/TestEnables/CRUZET3-v1/RAW'
-#    run=50658
-#    event=24
-#    lumi=1
-    dataset = '/Cosmics/Commissioning08-CRUZET4_v1/RECO'
-    run = 58620
-    lumi = 6
-    event = 0
-    flist = dbscls.getFiles(dataset=dataset, run=run, evt=event, lumi=lumi)
-    print '\n### lookup files'
-    print flist
-
-#    dataset = "/chi1/CMSSW_1_6_7-HLT-1193409242/GEN-SIM-DIGI-RECO"
-#    flist = dbscls.getFiles(run="", dataset=dataset, evt="", verbose=1)
-#    print flist[:5]
-
-#    import time
-#    t = time.time()
-#    dataset = "/dataset_PD_3/BUNKACQUISITIONERA-v1/RAW"
-#    flist = dbscls.getFiles(run="", dataset=dataset, evt="")
-#    print flist[:5]
-#    print time.time()-t
-
-if __name__ == "__main__":
-    main()

@@ -14,3 +14,7 @@ migration.
   - remove all HTML snippets from FileMoverService code into separate templates
   - sanitize all FileMover templates, ticket #740
   - validate input parameters, ticket #741
+  - Remove uniqueList; remove getArgs; clean-up DBSInteraction; 
+    move lfn.strip into checkargs; remove lfn.unquote(); remove sendEmail; 
+  - simplify setStat; rename getStat into updateUserPage; adjust code to always set
+    status as tuple(statusCode, statusMsg); update StatusCode/StatusMsg classes;

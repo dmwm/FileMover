@@ -9,14 +9,14 @@ import os
 import re
 import sets
 import stat
-import time
 import errno
 import operator
 import threading
+import traceback
 
 from fm.core.ConfiguredObject import ConfiguredObject
 from fm.core.FileMover import FileMover
-from fm.core.Status import StatusCode
+from fm.core.Status import StatusCode, StatusMsg
 from fm.core.ThreadPool import ThreadPool
 
 valid_lfn_re = re.compile('^/store(/[A-Za-z0-9][-A-Za-z0-9_.]*)+\\.root$')
@@ -97,7 +97,8 @@ class FileManager(ConfiguredObject):
             self.max_size_gb = cp.getfloat("file_manager", "max_size_gb")
             self.cleaner = SimpleCron("File Manager Cleaner", self.clean_dir,
                 90)
-            self.pool = ThreadPool(threads=cp.getint("file_manager", "max_movers"))
+            self.pool = ThreadPool(\
+                threads=cp.getint("file_manager", "max_movers"))
             self.configured = True
         finally:
             self._lock.release()
@@ -115,13 +116,14 @@ class FileManager(ConfiguredObject):
         """Find status of LFN transfer"""
         validate_lfn(lfn)
         self.request_lock.acquire()
-        status = "Unknown"
+        status = (StatusCode.UNKNOWN, StatusMsg.UNKNOWN)
         try:
             try:
                 if lfn in self.failed_lfns:
                     return self.failed_lfns[lfn]
                 if lfn not in self.lfn_requests:
-                    return "This LFN has not been requested yet!"
+                    return (StatusCode.LFN_NOT_REQUESTED, \
+                        StatusMsg.LFN_NOT_REQUESTED)
                 else:
                     status = self.lfn_requests[lfn].status()
                     if StatusCode.isFailure(status[0]): # FAILED!
@@ -132,7 +134,7 @@ class FileManager(ConfiguredObject):
                 raise
             except Exception, e:
                 self.log.exception(e)
-                return "Unknown status; internal error."
+                return (StatusCode.FAILED, StatusMsg.SERVER_FAILURE)
         finally:
             self.request_lock.release()
         return 
@@ -176,6 +178,8 @@ class FileManager(ConfiguredObject):
                 self.pool.queue(mover)
             else:
                 self._add_user_request(lfn, user)
+        except:
+            traceback.print_exc()
         finally:
             self.request_lock.release()
 
@@ -201,19 +205,7 @@ class FileManager(ConfiguredObject):
                 user_req.remove(user)
             except:
                 pass
-            if user == 'root':
-                for user in user_req:
-                    try:
-                        self.user_requests[user].remove(lfn)
-                    except:
-                        pass
-                del self.user_lfn_requests[lfn]
-                mover = self.lfn_requests[lfn]
-                self.log.info("Sending a cancel request to mover %s from " \
-                    "root." % mover)
-                del self.lfn_requests[lfn]
-                mover.cancel()
-            elif not user_req:
+            if not user_req:
                 mover = self.lfn_requests[lfn]
                 self.log.info("Sending a cancel request to mover %s." % mover)
                 del self.lfn_requests[lfn]

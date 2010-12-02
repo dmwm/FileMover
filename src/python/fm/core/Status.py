@@ -24,19 +24,24 @@ class StatusMsg(object):
     TRANSFER_STATUS_UNKNOWN = "Unknown transfer status."
     TRANSFER_FAILED_STATUS = "File failed; transfer status code %i."
 
+    SERVER_FAILURE = 'Unknown status; internal server error'
+    LFN_NOT_REQUESTED = "This LFN has not been requested yet!"
+    ALREADY_IN_CACHE = "Already in cache"
+    REQUESTED = "Requested"
+
 class StatusCode(object):
     """Define FileMover status codes"""
-    UNKNOWN = "Unknown Status"
-    SERVER_QUEUE = "The web server has too many requests, and this one has " \
-        "been queued."
-    USER_QUEUE = "You have too many files in progress; this request has been "\
-        "queued."
+    UNKNOWN = -1
     DONE = 0
-    FAILED = 3
-    TRANSFER_WRAPPER_NOT_LAUNCHED = 6
     TRANSFER_PROCESS_NOT_STARTED = 1
+    SERVER_QUEUE = 2
+    FAILED = 3
     TRANSFER_STATUS_UNKNOWN = 4
-    TRANSFER_FAILED = 3
+    TRANSFER_FAILED = 5
+    TRANSFER_WRAPPER_NOT_LAUNCHED = 6
+    USER_QUEUE = 7
+    LFN_NOT_REQUESTED = 8
+    REQUESTED = 9
 
     def isRunning(code):
         """check if code is running code"""

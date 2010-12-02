@@ -25,7 +25,7 @@ table.fmws_table {
     text-decoration: none;
     border-width: 1px 1px 1px 1px;
     border-spacing: 3px;
-    border-style: solid solid solid solid;
+    border-style: dashed solid dashed solid;
     border-color: gray gray gray gray;
     border-collapse: collapse;
     background-color: rgb(255, 250, 250);
@@ -51,7 +51,7 @@ table.fmws_table th.middle {
 table.fmws_table tr.tr_th {
     background-color: #F0F0F0;
     border-width: 1px 1px 1px 1px;
-    border-style: solid solid solid solid;
+    border-style: dashed solid dashed solid;
     border-color: gray gray gray gray;
     padding: 5px;
     margin: 0px;
@@ -59,7 +59,7 @@ table.fmws_table tr.tr_th {
 table.fmws_table tr {
     background-color: #FFFADC;
     border-width: 1px 1px 1px 1px;
-    border-style: solid solid solid solid;
+    border-style: dashed solid dashed solid;
     border-color: gray gray gray gray;
     padding: 5px;
     margin: 0px;
@@ -67,7 +67,7 @@ table.fmws_table tr {
 table.fmws_table tr.zebra{
     background-color: #fff5e8;
     border-width: 1px 1px 1px 1px;
-    border-style: solid solid solid solid;
+    border-style: dashed solid dashed solid;
     border-color: gray gray gray gray;
     padding: 5px;
     margin: 0px;

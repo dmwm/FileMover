@@ -16,9 +16,7 @@ import time
 import urllib
 import urllib2
 import traceback
-from subprocess import PIPE, Popen
 
-SENDMAIL = "/usr/sbin/sendmail" # sendmail location
 #Natural sorting,http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/285264
 digitsre = re.compile(r'\d+')         # finds groups of digits
 D_LEN = 3
@@ -84,18 +82,6 @@ def cleanup(ifile):
     ctime = os.stat(ifile)[stat.ST_CTIME]
     if  time.time() - ctime > 60*60*24:
         os.remove(ifile)
-
-def getArg(kwargs, key, default):
-    """provide default value for given key in kwargs dict"""
-    arg = default
-    if  kwargs.has_key(key):
-        try:
-            arg = kwargs[key]
-            if  isinstance(default, int):
-                arg = int(arg)
-        except NotImplementedError:
-            pass
-    return arg
 
 def printSize(i):
     """
@@ -172,22 +158,6 @@ def getPercentageDone(tSize, fSize):
     """format output of percentage"""
     return "%3.1f" % (long(tSize)*100/long(fSize))
 
-def uniqueList(alist):
-    """for given list provide list with unique entries"""
-    return list(set(alist))
-
-def sendEmail(tofield, msg, requestid):
-    """Send an Email with given message"""
-    if  not tofield:
-        return
-    p = Popen("%s -t" % SENDMAIL, bufsize=0, shell=True, stdin=PIPE)
-    p.stdin.write("To: %s\n" % tofield)
-    p.stdin.write("From: FileMover service <cmsfilemover@mail.cern.ch>\n")
-    p.stdin.write("Subject: request %s\n" % requestid)
-    p.stdin.write("\n") # blank line separating headers from body
-    p.stdin.write("\n"+msg+"\n\n\n")
-    p.stdin.close()
-
 class LfnInfoCache(object):
     """
        Simple cache class to keep lfn around
@@ -209,29 +179,3 @@ class LfnInfoCache(object):
             self.lfnDict[lfn] = lfnsize
             return lfnsize
 
-def test():
-    """Test function"""
-    ilfn = "/store/data/CRUZET3/Cosmics/RAW/v1/" \
-                + "000/050/832/186585EC-024D-DD11-B747-000423D94AA8.root"
-    size = getLFNSize(ilfn)
-    print size
-    print getPercentageDone(4*1024*1024, size)
-    print printSize(size)
-#    idir = '/data/vk/filemover/cmssw/root_files'
-    print "Test edmconfig"
-    lfnlist = ['/a/b/c.root', '/e/d/f.root']
-    release = 'CMSSW_3_5_6'
-    eventlist = [(100, 1, 1), (100, 1, 2)]
-    outfilename = '/tmp/cms_files/valya/my.root'
-    print edmconfig(release, lfnlist, eventlist, outfilename)
-    print "Test edmconfig with prefix"
-    myconfig = edmconfig(release, lfnlist, eventlist, 
-                outfilename, prefix='file:////tmp')
-    print myconfig
-    print "Test cmsrun_script"
-    print cmsrun_script(lfnlist, 'myconfig.py')
-#
-# main
-#
-if __name__ == "__main__":
-    test()

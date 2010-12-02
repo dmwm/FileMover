@@ -1,27 +1,23 @@
 #from fm.utils.Utils import quote
 #set style=$quote($style)
 #set spanid=$quote($spanid)
-#set fstat=$quote($fstat)
+## The statusMsg is already sanitized in FileMoverService.py code
 #set lfn=$quote($lfn)
 <!-- templateLfnRow -->
-<br />
-<div>
 <table class="fmws_table">
 <tr class="$style">
 <td class="td_left">
 $lfn
 </td>
 <td align="right">
-<span id="$spanid">$fstat</span>
+<span id="$spanid">$statusMsg</span>
 </td>
 </tr>
+#if $statusCode
 <script type="text/javascript">
 var lfnUpdater = new Updater('$spanid');
 ajaxEngine.registerAjaxObject('$spanid', lfnUpdater);
 </script>
-#if $fstat
-<script type="text/javascript">setTimeout('ajaxStatusOne(\'${lfn}\')',1000)</script>
 #end if
 </table>
-</div>
 <!-- end of templateLfnRow -->

@@ -157,11 +157,6 @@ function ajaxRemove(lfn)
 {
     ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn);
 }
-function ajaxrm(lfn)
-{
-    ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn,'force_remove=1');
-    ClearTag('_response');
-}
 function ajaxResolveLfn()
 {
     wait();
