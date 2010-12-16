@@ -274,6 +274,8 @@ class FileMoverService(TemplatedPage):
         page  = ""
         lfnList, statList = self.userDict[user]
         self.makedir(user)
+        if  not lfnList:
+            return ""
         try:
             idx = lfnList.index(lfn)
             statusCode, statusMsg  = statList[idx]
@@ -323,7 +325,7 @@ class FileMoverService(TemplatedPage):
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         res = self.templatepage('templateAjaxResponse', \
                 element=element, tag=tag, msg=msg)
-#        print "\n### ajax\n", res
+#        print "\n### ajax %s,\n%s", time.time(), res)
         return res
 
     @expose
@@ -566,21 +568,24 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def statusOne(self, lfn, **_kwargs):
         """return status of requested LFN"""
+        cherrypy.response.headers['Cache-control'] = 'no-cache'
+        cherrypy.response.headers['Expire'] = 0
         user = cherrypy.request.user['name']
         page = ""
         spanid = spanId(lfn)
         page += """<span id="%s" name="%s">""" % (spanid, spanid)
+        statCode = 0
         try:
             statCode = self.setStat(user, lfn)
             if  statCode and statCode != StatusCode.TRANSFER_FAILED:
                 page += self.templatepage('templateLoading', msg="")
             page += self.updatePageWithLfnInfo(user, lfn)
-            if  statCode and statCode != StatusCode.TRANSFER_FAILED:
-                page += self.templatepage('templateTimeout', \
-                                fun="ajaxStatusOne", req=lfn, msec=1000)
         except Exception as _exc:
             page += handleExc()
         page += "</span>"
+        if  statCode and statCode != StatusCode.TRANSFER_FAILED:
+            page += self.templatepage('templateTimeout', \
+                            fun="ajaxStatusOne", req=lfn, msec=1000)
         page = self.ajaxResponse(page, spanId(lfn))
         return page
 

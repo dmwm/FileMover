@@ -13,11 +13,11 @@ $lfn
 <span id="$spanid">$statusMsg</span>
 </td>
 </tr>
+</table>
 #if $statusCode
 <script type="text/javascript">
 var lfnUpdater = new Updater('$spanid');
 ajaxEngine.registerAjaxObject('$spanid', lfnUpdater);
 </script>
 #end if
-</table>
 <!-- end of templateLfnRow -->
