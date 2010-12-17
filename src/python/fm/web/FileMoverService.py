@@ -201,9 +201,10 @@ class FileMoverService(TemplatedPage):
     def index(self):
         """default service method"""
         page = self.getTopHTML()
-        user = cherrypy.request.user['name']
+        user = cherrypy.request.user['login']
+        name = cherrypy.request.user['name']
         self.addUser(user)
-        page += self.userForm(user)
+        page += self.userForm(user, name)
         page += self.getBottomHTML()
         return page
 
@@ -313,9 +314,9 @@ class FileMoverService(TemplatedPage):
             print self.userDict
         return page
         
-    def userForm(self, user):
+    def userForm(self, user, name):
         """page forms"""
-        page = self.templatepage('templateForm', user=user)
+        page = self.templatepage('templateForm', user=user, name=name)
         page += '<div id="_response">'
         page += self.checkUserCache(user)
         page += '</div>'
