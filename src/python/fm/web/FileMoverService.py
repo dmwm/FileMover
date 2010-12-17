@@ -21,6 +21,7 @@ from   cherrypy.lib.static import serve_file
 from   cherrypy import config as cherryconf
 
 # FileMover modules
+from   fm import version as fm_version
 from   fm.utils.FMWSConfig  import fm_config
 from   fm.core.FileManager import FileManager, validate_lfn
 from   fm.core.Status import StatusCode, StatusMsg
@@ -134,7 +135,9 @@ def parse_args(params):
 
 def getBottomHTML():
     """HTML bottom template"""
-    page = "</body></html>"
+    page  = "\n<hr class=\"hline\">"
+    page += "<div align=\"right\">FileMover, version %s</div>" % fm_version
+    page += "</body></html>"
     return page
 
 def spanId(lfn):
