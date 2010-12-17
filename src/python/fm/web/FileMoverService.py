@@ -133,13 +133,6 @@ def parse_args(params):
     """
     return [arg for s in params for arg in s.split('_and_')]
 
-def getBottomHTML():
-    """HTML bottom template"""
-    page  = "\n<hr class=\"hline\">"
-    page += "<div align=\"right\">FileMover, version %s</div>" % fm_version
-    page += "</body></html>"
-    return page
-
 def spanId(lfn):
     """assign id for span tag based on provided lfn"""
     return lfn.split("/")[-1].replace(".root","")
@@ -211,7 +204,7 @@ class FileMoverService(TemplatedPage):
         user = cherrypy.request.user['name']
         self.addUser(user)
         page += self.userForm(user)
-        page += getBottomHTML()
+        page += self.getBottomHTML()
         return page
 
     def addUser(self, user):
@@ -238,6 +231,11 @@ class FileMoverService(TemplatedPage):
     def getTopHTML(self):
         """HTML top template"""
         page = self.templatepage('templateTop', url=self.url)
+        return page
+
+    def getBottomHTML(self):
+        """HTML bottom template"""
+        page = self.templatepage('templateBottom', version=fm_version)
         return page
 
     def updateUserPage(self, user):
@@ -328,7 +326,7 @@ class FileMoverService(TemplatedPage):
         cherrypy.response.headers['Content-Type'] = 'text/xml'
         res = self.templatepage('templateAjaxResponse', \
                 element=element, tag=tag, msg=msg)
-#        print "\n### ajax %s,\n%s", time.time(), res)
+#        print "\n### ajax %s,\n%s" % (time.time(), res)
         return res
 
     @expose
