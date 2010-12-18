@@ -146,13 +146,6 @@ function ajaxStatusOne(lfn)
 {
     ajaxEngine.sendRequest('ajaxStatusOne','lfn='+lfn);
 }
-function ajaxdbsStatus(dbs)
-{
-    var id=document.getElementById('_response').innerHTML;
-    if (id && id.search('loading.gif')) {
-        ajaxEngine.sendRequest('ajaxdbsStatus','dbs='+dbs);
-    }
-}
 function ajaxRemove(lfn)
 {
     ajaxEngine.sendRequest('ajaxRemove','lfn='+lfn);
@@ -160,13 +153,11 @@ function ajaxRemove(lfn)
 function ajaxResolveLfn()
 {
     wait();
-    ajaxdbsStatus('cms_dbs_prod_global');
     var dataset=document.getElementById('dataset').value;
     var run=document.getElementById('run').value;
     var minEvt=document.getElementById('minEvt').value;
     var maxEvt=document.getElementById('maxEvt').value;
-    var branch=document.getElementById('branch').value;
-    ajaxEngine.sendRequest('ajaxResolveLfn','dataset='+dataset,'run='+run,'minEvt='+minEvt,'maxEvt='+maxEvt,'branch='+branch);
+    ajaxEngine.sendRequest('ajaxResolveLfn','dataset='+dataset,'run='+run,'minEvt='+minEvt,'maxEvt='+maxEvt);
 }
 
 ajaxEngine.registerAjaxElement('lfnsHolder');
@@ -176,7 +167,6 @@ ajaxEngine.registerRequest('ajaxCancel','cancel');
 ajaxEngine.registerRequest('ajaxStatus','status');
 ajaxEngine.registerRequest('ajaxRemove','remove');
 ajaxEngine.registerRequest('ajaxStatusOne','statusOne');
-ajaxEngine.registerRequest('ajaxdbsStatus','dbsStatus');
 
 //var ajaxUpdater = new Updater('_response');
 var ajaxUpdater = new dbsUpdater('_response');

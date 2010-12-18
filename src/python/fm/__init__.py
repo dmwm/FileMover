@@ -4,4 +4,4 @@
 CMS FileMover Service
 """
 __author__ = "Brian Bockelman and Valentin Kuznetsov"
-version = "1.0.4"
+version = "1.0.5"

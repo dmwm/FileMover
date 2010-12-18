@@ -3,7 +3,7 @@
 #if not $lfnList
 No lfns found for your criteria
 #else
-Found the following list of lfns:<br/>
+Found the following list of LFN's:<br/>
 <table class="normal">
 #for lfn, size in $lfnList:
 #set lfn=$quote($lfn)
@@ -17,5 +17,4 @@ Found the following list of lfns:<br/>
 #end for
 </table>
 #end if
-<script type="text/javascript">clearInterval()</script>
 <!-- end of templateResolveLfns -->

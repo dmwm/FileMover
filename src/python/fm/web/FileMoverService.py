@@ -80,12 +80,14 @@ def checkargs(func):
                 raise HTTPError(500, 'Unsupported run')
         for evt in ['minEvt', 'maxEvt']:
             if  checkarg(kwds, evt):
+                event = kwds.get(evt)
                 pat = re.compile('[0-9]{3}.*')
-                if  not pat.match(kwds.get(evt)):
+                if  event and not pat.match(kwds.get(evt)):
                     raise HTTPError(500, 'Unsupported event')
         if  checkarg(kwds, 'dbs'):
-            pat = re.compile('dbs_.*')
-            if  not pat.match(kwds.get('dbs')):
+            dbs = kwds.get('dbs')
+            pat = re.compile('cms_dbs_.*')
+            if  dbs and not pat.match(dbs):
                 raise HTTPError(500, 'Unsupported dbs instance')
         data = func (self, *args, **kwds)
         return data
@@ -269,6 +271,8 @@ class FileMoverService(TemplatedPage):
             spanid = spanId(lfn)
             page += self.templatepage('templateLfnRow', style=style, lfn=lfn, \
                 spanid=spanid, statusCode=statusCode, statusMsg=statusMsg)
+        if  not page:
+            page = "Your user cache is empty"
         return page
 
     def updatePageWithLfnInfo(self, user, lfn):
@@ -540,33 +544,6 @@ class FileMoverService(TemplatedPage):
         return page
 
     @expose
-    @checkargs
-    def dbsStatus(self, dbs, **_kwargs):
-        """report status of dbs scanning"""
-        if  dbs not in dbsinstances():
-            page = self.ajaxResponse("Unknown DBS instance", "_response")
-            return page
-        try:
-            idx  = self.dbs.dbslist.index(dbs)
-        except Exception as _exc:
-            idx = -1
-        newdbs = ""
-        if  idx == len(self.dbs.dbslist)-1:
-            newdbs = "no more DBS instances to scan"
-        else:
-            newdbs = self.dbs.dbslist[idx+1]
-        page = ""
-        if  idx == -1:
-            page += self.templatepage('templateLoading', msg="please wait")
-        else: 
-            page += self.templatepage('templateLoading', \
-                        msg="Scan %s instance" % dbs)
-            page += self.templatepage('templateTimeout', \
-                        fun="ajaxdbsStatus", req=newdbs, msec=1000)
-        page = self.ajaxResponse(page,'_response')
-        return page
-
-    @expose
     @tools.secmodv2()
     @checkargs
     def statusOne(self, lfn, **_kwargs):
@@ -580,13 +557,17 @@ class FileMoverService(TemplatedPage):
         statCode = 0
         try:
             statCode = self.setStat(user, lfn)
-            if  statCode and statCode != StatusCode.TRANSFER_FAILED:
+            if  statCode == StatusCode.FAILED:
+                # this happen when proxy is expired, need to look at a log
+                page += "Your request fails. "
+            elif statCode and statCode != StatusCode.TRANSFER_FAILED:
                 page += self.templatepage('templateLoading', msg="")
             page += self.updatePageWithLfnInfo(user, lfn)
         except Exception as _exc:
             page += handleExc()
         page += "</span>"
-        if  statCode and statCode != StatusCode.TRANSFER_FAILED:
+        if  statCode and statCode != StatusCode.TRANSFER_FAILED and\
+            statCode != StatusCode.FAILED:
             page += self.templatepage('templateTimeout', \
                             fun="ajaxStatusOne", req=lfn, msec=1000)
         page = self.ajaxResponse(page, spanId(lfn))

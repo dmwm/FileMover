@@ -24,10 +24,10 @@ class StatusMsg(object):
     TRANSFER_STATUS_UNKNOWN = "Unknown transfer status."
     TRANSFER_FAILED_STATUS = "File failed; transfer status code %i."
 
-    SERVER_FAILURE = 'Unknown status; internal server error'
+    SERVER_FAILURE = 'Internal server error.'
     LFN_NOT_REQUESTED = "This LFN has not been requested yet!"
-    ALREADY_IN_CACHE = "Already in cache"
-    REQUESTED = "Requested"
+    ALREADY_IN_CACHE = "Already in cache."
+    REQUESTED = "Requested."
 
 class StatusCode(object):
     """Define FileMover status codes"""
