@@ -173,7 +173,10 @@ class TransferWrapper(ActivityObject):
         # group for the child process, then launches srmcp.  This means we
         # can later send a signal to the entire process group, killing srmcp's
         # children processes too, instead of just killing the wrapper.
-        srmcp_args = ["python", "srmcp_wrapper", "-c",
+        # NOTE: I changed second argument in srmcp_args to python due to
+        # problem discussed here:
+        # https://hypernews.cern.ch/HyperNews/CMS/get/webInterfaces/547/1.html
+        srmcp_args = ["python", "python", "-c",
             "import os, sys; os.setpgrp(); os.execvp(sys.argv[1]," \
             " sys.argv[2:])"] + srmcp_args
         results = os.spawnlp(options, *srmcp_args)
