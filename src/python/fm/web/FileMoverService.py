@@ -196,6 +196,7 @@ class FileMoverService(TemplatedPage):
         cherryconf.update({'tools.encode.on': True, 
                            'tools.gzip.on': True,
                            'tools.gzip.mime_types': mime_types,
+                           'tools.etags.on' : False,
                           })
 
     @expose
@@ -517,7 +518,7 @@ class FileMoverService(TemplatedPage):
                         lfn=lfn, msg='in_queue')
             page += self.updateUserPage(user)
             page += self.templatepage('templateTimeout', \
-                            fun="ajaxStatusOne", req=lfn, msec=1000)
+                            fun="ajaxStatusOne", req=lfn, msec=10000)
         except Exception as _exc:
             page = handleExc()
 #        print "\n### new page\n"
@@ -569,7 +570,7 @@ class FileMoverService(TemplatedPage):
         if  statCode and statCode != StatusCode.TRANSFER_FAILED and\
             statCode != StatusCode.FAILED:
             page += self.templatepage('templateTimeout', \
-                            fun="ajaxStatusOne", req=lfn, msec=1000)
+                            fun="ajaxStatusOne", req=lfn, msec=10000)
         page = self.ajaxResponse(page, spanId(lfn))
         return page
 
