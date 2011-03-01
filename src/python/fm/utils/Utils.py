@@ -21,6 +21,16 @@ import traceback
 digitsre = re.compile(r'\d+')         # finds groups of digits
 D_LEN = 3
 
+def parse_dn(user_dn):
+    """
+    Parse user DN and return login/name of the user
+    /DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=user/CN=123/CN=First Last Name
+    """
+    parts = user_dn.split('/')
+    user  = parts[-3].replace('CN=', '')
+    name  = parts[-1].replace('CN=', '')
+    return user, name
+
 def quote(data):
     """
     Sanitize the data using cgi.escape.

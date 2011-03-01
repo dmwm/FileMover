@@ -26,7 +26,7 @@ from   fm.utils.FMWSConfig  import fm_config
 from   fm.core.FileManager import FileManager, validate_lfn
 from   fm.core.Status import StatusCode, StatusMsg
 from   fm.dbs.DBSInteraction import DBS, dbsinstances
-from   fm.utils.Utils import sizeFormat
+from   fm.utils.Utils import sizeFormat, parse_dn
 
 # WMCore/WebTools modules
 from WMCore.WebTools.Page import TemplatedPage
@@ -206,6 +206,8 @@ class FileMoverService(TemplatedPage):
         page = self.getTopHTML()
         user = cherrypy.request.user['login']
         name = cherrypy.request.user['name']
+        if  not user or not name:
+            user, name = parse_dn(cherrypy.request.user['dn'])
         self.addUser(user)
         page += self.userForm(user, name)
         page += self.getBottomHTML()
