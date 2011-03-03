@@ -204,10 +204,7 @@ class FileMoverService(TemplatedPage):
     def index(self):
         """default service method"""
         page = self.getTopHTML()
-        user = cherrypy.request.user['login']
-        name = cherrypy.request.user['name']
-        if  not user or not name:
-            user, name = parse_dn(cherrypy.request.user['dn'])
+        user, name = parse_dn(cherrypy.request.user['dn'])
         self.addUser(user)
         page += self.userForm(user, name)
         page += self.getBottomHTML()

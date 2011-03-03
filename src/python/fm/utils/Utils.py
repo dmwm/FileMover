@@ -15,11 +15,23 @@ import stat
 import time
 import urllib
 import urllib2
+import hashlib
 import traceback
 
 #Natural sorting,http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/285264
 digitsre = re.compile(r'\d+')         # finds groups of digits
 D_LEN = 3
+
+def genkey(query):
+    """
+    Generate a new key-hash for a given query. We use md5 hash for the
+    query and key is just hex representation of this hash.
+    """
+    keyhash = hashlib.md5()
+    if  isinstance(query, dict):
+        query = json.JSONEncoder(sort_keys=True).encode(query)
+    keyhash.update(query)
+    return keyhash.hexdigest()
 
 def parse_dn(user_dn):
     """
@@ -27,9 +39,14 @@ def parse_dn(user_dn):
     /DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=user/CN=123/CN=First Last Name
     """
     parts = user_dn.split('/')
-    user  = parts[-3].replace('CN=', '')
+    user  = genkey(user_dn)
     name  = parts[-1].replace('CN=', '')
-    return user, name
+    name_parts = []
+    pat   = re.compile(r'(^[0-9-]$|^[0-9-][0-9]*$)')
+    for item in name.split():
+        if  not pat.match(item):
+            name_parts.append(item)
+    return user, ' '.join(name_parts)
 
 def quote(data):
     """
