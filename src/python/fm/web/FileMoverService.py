@@ -471,7 +471,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def remove(self, lfn, **_kwargs):
         """remove requested LFN from the queue"""
-        user = cherrypy.request.user['login']
+        user, _ = parse_dn(cherrypy.request.user['dn'])
         self.delLfn(user, lfn)
         page = self.updateUserPage(user)
         try:
@@ -500,7 +500,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def request(self, lfn, **kwargs):
         """place LFN request"""
-        user = cherrypy.request.user['login']
+        user, _ = parse_dn(cherrypy.request.user['dn'])
         page = kwargs.get('page')
         lfn  = lfn.strip()
         lfnStatus = self.addLfn(user, lfn)
@@ -530,7 +530,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def cancel(self, lfn, **_kwargs):
         """cancel LFN request"""
-        user = cherrypy.request.user['login']
+        user, _ = parse_dn(cherrypy.request.user['dn'])
         self.delLfn(user, lfn)
         page = ""
         try:
@@ -550,7 +550,7 @@ class FileMoverService(TemplatedPage):
         """return status of requested LFN"""
         cherrypy.response.headers['Cache-control'] = 'no-cache'
         cherrypy.response.headers['Expire'] = 0
-        user = cherrypy.request.user['login']
+        user, _ = parse_dn(cherrypy.request.user['dn'])
         page = ""
         spanid = spanId(lfn)
         page += """<span id="%s" name="%s">""" % (spanid, spanid)
