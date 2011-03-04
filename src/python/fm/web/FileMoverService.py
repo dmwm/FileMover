@@ -320,7 +320,7 @@ class FileMoverService(TemplatedPage):
         
     def userForm(self, user, name):
         """page forms"""
-        page = self.templatepage('templateForm', user=user, name=name)
+        page = self.templatepage('templateForm', name=name)
         page += '<div id="_response">'
         page += self.checkUserCache(user)
         page += '</div>'
