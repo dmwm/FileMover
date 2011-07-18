@@ -8,7 +8,7 @@ Hello ${name}
 <br />
 <div id="form_files" name="form_files">
 
-<form action="javascript:ajaxAction()" method="get">
+<form id="request_lfn" action="javascript:ajaxRequest()" method="get">
 <table class="normal">
 <tr>
 <td>
@@ -24,9 +24,8 @@ Hello ${name}
 
 <tr>
 <td>
-<input type="submit" value="Request" onclick="javascript:SetMethod('request')" />
+<input type="submit" value="Request" />
 <input type="reset" value="Reset" />
-<input id="method" type="hidden" />
 </td>
 </tr>
 </table>
@@ -35,7 +34,7 @@ Hello ${name}
 <br />
 <br />
 
-<form action="javascript:ajaxResolveLfn()" method="get">
+<form id="resolve_lfn" action="javascript:ajaxResolveLfn()" method="get">
 <div id="lfnsHolder" name="lfnsHolder"></div>
 <table class="normal">
 <tr>

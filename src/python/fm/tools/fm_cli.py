@@ -104,7 +104,7 @@ def srmcp(lfn, verbose=None):
         try:
             cmsnamedict = json.loads(data)
         except:
-            msg += "WARNING, fail to JSON'ify data:\n%s" % data
+            msg = "WARNING, fail to JSON'ify data:\n%s" % data
             cmsnamedict = eval(data, { "__builtins__": None }, {})
         try:
             cmsname = cmsnamedict['0']['name']

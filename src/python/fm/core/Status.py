@@ -28,6 +28,8 @@ class StatusMsg(object):
     LFN_NOT_REQUESTED = "This LFN has not been requested yet!"
     ALREADY_IN_CACHE = "Already in cache."
     REQUESTED = "Requested."
+    CANCELLED = "File cancelled."
+    REMOVED = "File removed."
 
 class StatusCode(object):
     """Define FileMover status codes"""
@@ -42,6 +44,8 @@ class StatusCode(object):
     USER_QUEUE = 7
     LFN_NOT_REQUESTED = 8
     REQUESTED = 9
+    CANCELLED = 10
+    REMOVED = 11
 
     def isRunning(code):
         """check if code is running code"""

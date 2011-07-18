@@ -1,6 +1,7 @@
 from WMCore.Configuration import Configuration
 from WMCore.WMBase import getWMBASE
 import os.path
+import logging
 from os import environ
 
 config = Configuration()
@@ -13,6 +14,10 @@ config.Webtools.port = 8201
 # INADDR_ANY: listen on all interfaces (be visible outside of localhost)
 config.Webtools.host = '0.0.0.0' 
 config.Webtools.application = 'FileMover'
+# uncomment lines below for more debug printouts
+#config.Webtools.environment = 'development'
+#config.Webtools.log_screen = True
+#config.Webtools.error_log_level = logging.DEBUG
 
 # This is the config for the application
 config.component_('FileMover')
@@ -22,6 +27,7 @@ config.FileMover.templates = environ['FM_TMPLPATH']
 config.FileMover.admin = 'vkuznet@gmail.com'
 config.FileMover.title = 'CMS FileMover Documentation'
 config.FileMover.description = 'Documentation on the FileMover'
+config.FileMover.index = 'filemover'
 
 # dbs section
 dbs = config.FileMover.section_('dbs')

@@ -166,6 +166,9 @@ class FileMoverService(TemplatedPage):
         self.userDictPerDay = {}
         self.url            = "/filemover"
 
+        # prevent users from partial retrieval requests
+        cherrypy.response.headers['Accept-Ranges'] = 'none'
+
         # internal settings
         self.base   = '' # defines base path for HREF in templates
         self.imgdir = '%s/%s' % (__file__.rsplit('/', 1)[0], 'images')
@@ -263,7 +266,9 @@ class FileMoverService(TemplatedPage):
             if  statusCode == StatusCode.DONE: # append remove request
                 statusMsg += " | " + removeLfn(lfn)
             else: # sanitize msg and append cancel request
-                statusMsg  = cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
+                img = """<img src="images/loading.gif"/>&nbsp;"""
+                msg = cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
+                statusMsg  = img + msg
             if  style:
                 style = ""
             else:
@@ -271,8 +276,6 @@ class FileMoverService(TemplatedPage):
             spanid = spanId(lfn)
             page += self.templatepage('templateLfnRow', style=style, lfn=lfn, \
                 spanid=spanid, statusCode=statusCode, statusMsg=statusMsg)
-        if  not page:
-            page = "Your user cache is empty"
         return page
 
     def updatePageWithLfnInfo(self, user, lfn):
@@ -312,6 +315,8 @@ class FileMoverService(TemplatedPage):
                 page += msg + " | " + removeLfn(lfn)
             else:
                 page += cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
+        except ValueError as err:
+            pass
         except Exception as _exc:
             traceback.print_exc()
             print lfn
@@ -321,18 +326,10 @@ class FileMoverService(TemplatedPage):
     def userForm(self, user, name):
         """page forms"""
         page = self.templatepage('templateForm', name=name)
-        page += '<div id="_response">'
+        page += '<div id="fm_response">'
         page += self.checkUserCache(user)
         page += '</div>'
         return page
-
-    def ajaxResponse(self, msg, tag="_response", element="object"):
-        """AJAX form wrapper"""
-        cherrypy.response.headers['Content-Type'] = 'text/xml'
-        res = self.templatepage('templateAjaxResponse', \
-                element=element, tag=tag, msg=msg)
-#        print "\n### ajax %s,\n%s" % (time.time(), res)
-        return res
 
     @expose
     @checkargs
@@ -346,7 +343,6 @@ class FileMoverService(TemplatedPage):
             evt = (minEvt, maxEvt)
         lfnList = self.dbs.getFiles(run, dataset, evt)
         page = self.templatepage('templateResolveLfns', lfnList=lfnList)
-        page = self.ajaxResponse(page)
         return page
         
     def addLfn(self, user, lfn):
@@ -418,7 +414,7 @@ class FileMoverService(TemplatedPage):
         page += self.updateUserPage(user)
         return page
         
-    def setStat(self, user, _lfn=None):
+    def setStat(self, user, _lfn=None, _status=None):
         """
         Update status of LFN in transfer for given user and return
         FileManager status code.
@@ -430,7 +426,10 @@ class FileMoverService(TemplatedPage):
             lfn    = lfnList[idx]
             if  _lfn and lfn != _lfn:
                 continue
-            status = self.fmgr.status(lfn)
+            if  _status:
+                status = _status
+            else:
+                status = self.fmgr.status(lfn)
             statList[idx] = status
             statCode = status[0]
             break
@@ -473,12 +472,15 @@ class FileMoverService(TemplatedPage):
         """remove requested LFN from the queue"""
         user, _ = parse_dn(cherrypy.request.user['dn'])
         self.delLfn(user, lfn)
-        page = self.updateUserPage(user)
         try:
             self.fmgr.cancel(lfn)
+            status = StatusCode.REMOVED, StatusMsg.REMOVED
+            self.setStat(user, lfn, status)
+            page = 'Removed'
         except Exception as _exc:
             page = handleExc()
-        return self.ajaxResponse(page)
+#        page += self.updateUserPage(user)
+        return page
 
     def tooManyRequests(self, user):
         """report that user has too many requests"""
@@ -493,7 +495,7 @@ class FileMoverService(TemplatedPage):
                     max_transfer=self.max_transfer, \
                     day_transfer=self.day_transfer, fulldesc=True)
         page += self.updateUserPage(user)
-        return self.ajaxResponse(page)
+        return page
 
     @expose
     @tools.secmodv2()
@@ -501,7 +503,6 @@ class FileMoverService(TemplatedPage):
     def request(self, lfn, **kwargs):
         """place LFN request"""
         user, _ = parse_dn(cherrypy.request.user['dn'])
-        page = kwargs.get('page')
         lfn  = lfn.strip()
         lfnStatus = self.addLfn(user, lfn)
         if  not lfnStatus:
@@ -510,19 +511,15 @@ class FileMoverService(TemplatedPage):
         try:
             if  lfnStatus == 1:
                 self.fmgr.request(lfn)
-                page += self.templatepage('templateRequest', \
-                        lfn=lfn, msg='requested')
+                page += 'Requested'
             else:
-                page += self.templatepage('templateRequest', \
-                        lfn=lfn, msg='in_queue')
+                page += 'Already in queue'
             page += self.updateUserPage(user)
             page += self.templatepage('templateTimeout', \
                             fun="ajaxStatusOne", req=lfn, msec=10000)
+            page += '<!-- loading -->'
         except Exception as _exc:
             page = handleExc()
-#        print "\n### new page\n"
-#        print page
-        page = self.ajaxResponse(page)
         return page
         
     @expose
@@ -535,12 +532,12 @@ class FileMoverService(TemplatedPage):
         page = ""
         try:
             self.fmgr.cancel(lfn)
-            page = self.templatepage('templateRequest', \
-                            lfn=lfn, msg='discarded')
+            status = StatusCode.CANCELLED, StatusMsg.CANCELLED
+            self.setStat(user, lfn, status)
+            page = 'Request cancelled'
         except Exception as _exc:
             page = handleExc()
-        page += self.updateUserPage(user)
-        page  = self.ajaxResponse(page)
+#        page += self.updateUserPage(user)
         return page
 
     @expose
@@ -555,22 +552,25 @@ class FileMoverService(TemplatedPage):
         spanid = spanId(lfn)
         page += """<span id="%s" name="%s">""" % (spanid, spanid)
         statCode = 0
+        stop_codes = [StatusCode.TRANSFER_FAILED, StatusCode.CANCELLED,
+                StatusCode.REMOVED]
         try:
             statCode = self.setStat(user, lfn)
             if  statCode == StatusCode.FAILED:
                 # this happen when proxy is expired, need to look at a log
-                page += "Your request fails. "
-            elif statCode and statCode != StatusCode.TRANSFER_FAILED:
+                page += "request fails"
+            elif statCode == StatusCode.UNKNOWN:
+                page += 'lfn status unknown'
+            elif  statCode == StatusCode.CANCELLED:
+                page += 'transfer is cancelled'
+            elif statCode == StatusCode.REMOVED:
+                page += 'lfn is removed'
+            elif statCode and statCode not in stop_codes:
                 page += self.templatepage('templateLoading', msg="")
             page += self.updatePageWithLfnInfo(user, lfn)
         except Exception as _exc:
             page += handleExc()
         page += "</span>"
-        if  statCode and statCode != StatusCode.TRANSFER_FAILED and\
-            statCode != StatusCode.FAILED:
-            page += self.templatepage('templateTimeout', \
-                            fun="ajaxStatusOne", req=lfn, msec=10000)
-        page = self.ajaxResponse(page, spanId(lfn))
         return page
 
     @expose
