@@ -169,10 +169,9 @@ class DBS(object):
                 return blockList
         return []
 
-    def getFiles(self, run=None, dataset=None, evt=None, lumi=None,
-                       branchList=None, site=None, verbose=0):
+    def getFiles(self, run=None, dataset=None, lumi=None, verbose=0):
         """
-        Return list of lfns for given run/(dataset,evt,branch)
+        Return list of lfns for given run/(dataset,lumi)
         """
         query = "find file,file.size where"
         cond = ""
@@ -189,31 +188,15 @@ class DBS(object):
                 cond += " and dataset like %s" % dataset
             else:
                 cond += " and dataset=%s" % dataset
-        # condition on event if no lumi is present, since event is not properly
-        # recorded in DBS
-        if evt and not lumi:
-            if  isinstance(evt, tuple) or isinstance(evt, list):
-                cond += " and lumi.startevnum <= %s and lumi.endevnum >= %s "\
-                        % (evt[0], evt[1])
-            else:
-                cond += " and lumi.startevnum <= %s and lumi.endevnum >= %s "\
-                        % (evt, evt)
         # condition on lumi
         if lumi:
             cond += " and lumi=%s " % lumi
-        if  branchList:
-            for b in branchList:
-                cond += " and file.branch = %s" % b
         if  not cond:
             msg  = "Unable to build query, not sufficient clause condition:\n"
-            msg += "run=%s, dataset=%s, evt=%s, branch=%s" \
-                  % (run,dataset,evt,branchList)
+            msg += "run=%s, dataset=%s" % (run, dataset)
             print msg
             raise RuntimeError
 
-        # condition on site
-        if site:
-            cond += " and site like %s " % site
         query = "find file,file.size where %s" % cond[4:] # don't use first and
 #        print query
         params = dict(self.params)

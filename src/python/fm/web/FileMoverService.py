@@ -333,15 +333,9 @@ class FileMoverService(TemplatedPage):
 
     @expose
     @checkargs
-    def resolveLfn(self, dataset, run, minEvt, maxEvt, **_kwargs):
+    def resolveLfn(self, dataset, run, **_kwargs):
         """look-up LFNs in DBS upon user request"""
-        if  not minEvt:
-            evt = ""
-        elif not maxEvt:
-            evt = minEvt
-        else:
-            evt = (minEvt, maxEvt)
-        lfnList = self.dbs.getFiles(run, dataset, evt)
+        lfnList = self.dbs.getFiles(run, dataset)
         page = self.templatepage('templateResolveLfns', lfnList=lfnList)
         return page
         
