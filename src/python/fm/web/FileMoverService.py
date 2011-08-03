@@ -79,7 +79,7 @@ def checkargs(func):
                 external = int(kwds.get('external'))
             except:
                 raise HTTPError(500, 'Unable to parse')
-            if  external != 0 or external != 1:
+            if  external not in [0, 1]:
                 raise HTTPError(500, 'Unsupported external value')
         if  checkarg(kwds, 'run'):
             pat = re.compile('[0-9]{3}.*')
