@@ -73,7 +73,7 @@ transfer_wrapper.transfer_command = 'srm-copy'
 
 # Security module stuff
 config.component_('SecurityModule')
-config.SecurityModule.key_file = '/Users/vk/tmp/apache/install_2.2.6/binkey'
+config.SecurityModule.key_file = '/Users/vk/Work/apache/install_2.2.19/binkey'
 config.SecurityModule.store = 'filestore'
 config.SecurityModule.store_path = '/tmp/security-store'
 config.SecurityModule.mount_point = 'auth'

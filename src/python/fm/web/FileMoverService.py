@@ -54,7 +54,7 @@ def checkargs(func):
     @expose
     def wrapper(self, *args, **kwds):
         """Wrap input function"""
-        supported = ['lfn', 'dataset', 'run', 'minEvt', 'maxEvt', 'dbs', '_']
+        supported = ['lfn', 'dataset', 'run', 'external', 'dbs', '_']
         if  not kwds:
             if  args:
                 kwds = args[-1]
@@ -74,16 +74,17 @@ def checkargs(func):
             pat = re.compile('/.*/.*/.*')
             if  not pat.match(kwds.get('dataset')):
                 raise HTTPError(500, 'Unsupported dataset')
+        if  checkarg(kwds, 'external'):
+            try:
+                external = int(kwds.get('external'))
+            except:
+                raise HTTPError(500, 'Unable to parse')
+            if  external != 0 or external != 1:
+                raise HTTPError(500, 'Unsupported external value')
         if  checkarg(kwds, 'run'):
             pat = re.compile('[0-9]{3}.*')
             if  not pat.match(kwds.get('run')):
                 raise HTTPError(500, 'Unsupported run')
-        for evt in ['minEvt', 'maxEvt']:
-            if  checkarg(kwds, evt):
-                event = kwds.get(evt)
-                pat = re.compile('[0-9]{3}.*')
-                if  event and not pat.match(kwds.get(evt)):
-                    raise HTTPError(500, 'Unsupported event')
         if  checkarg(kwds, 'dbs'):
             dbs = kwds.get('dbs')
             pat = re.compile('cms_dbs_.*')
@@ -496,7 +497,9 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def request(self, lfn, **kwargs):
         """place LFN request"""
-        user, _ = parse_dn(cherrypy.request.user['dn'])
+        user, name = parse_dn(cherrypy.request.user['dn'])
+        html = kwargs.get('external', 0)
+        self.addUser(user)
         lfn  = lfn.strip()
         lfnStatus = self.addLfn(user, lfn)
         if  not lfnStatus:
@@ -514,8 +517,16 @@ class FileMoverService(TemplatedPage):
             page += '<!-- loading -->'
         except Exception as _exc:
             page = handleExc()
+        if  html:
+            main  = self.getTopHTML()
+            main += self.templatepage('templateForm', name=name)
+            main += '<div id="fm_response">'
+            main += page
+            page += '</div>'
+            main += self.getBottomHTML()
+            return main
         return page
-        
+
     @expose
     @tools.secmodv2()
     @checkargs
