@@ -119,7 +119,8 @@ class FileManager(ConfiguredObject):
         status = (StatusCode.UNKNOWN, StatusMsg.UNKNOWN)
         try:
             try:
-                if lfn in self.failed_lfns:
+                if lfn in self.failed_lfns.keys():
+                    print "Failed lfns", self.failed_lfns
                     return self.failed_lfns[lfn]
                 if lfn not in self.lfn_requests:
                     return (StatusCode.LFN_NOT_REQUESTED, \
@@ -180,6 +181,7 @@ class FileManager(ConfiguredObject):
                 self._add_user_request(lfn, user)
         except:
             traceback.print_exc()
+            self.failed_lfns[lfn] = (StatusCode.FAILED, StatusMsg.SERVER_FAILURE)
         finally:
             self.request_lock.release()
 

@@ -563,13 +563,13 @@ class FileMoverService(TemplatedPage):
             statCode = self.setStat(user, lfn)
             if  statCode == StatusCode.FAILED:
                 # this happen when proxy is expired, need to look at a log
-                page += "request fails"
+                page += "request fails. "
             elif statCode == StatusCode.UNKNOWN:
-                page += 'lfn status unknown'
+                page += 'lfn status unknown. '
             elif  statCode == StatusCode.CANCELLED:
-                page += 'transfer is cancelled'
+                page += 'transfer is cancelled. '
             elif statCode == StatusCode.REMOVED:
-                page += 'lfn is removed'
+                page += 'lfn is removed. '
             elif statCode and statCode not in stop_codes:
                 page += self.templatepage('templateLoading', msg="")
             page += self.updatePageWithLfnInfo(user, lfn)

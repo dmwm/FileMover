@@ -202,12 +202,12 @@ class FileLookup(MappingManager):
         except:
             bsList = self._dbs.blockSiteLookup(lfn)
             seList = [s for b, s in bsList]
+            msg    = "Fail to look-up T[1-3] CMS site for\n"
+            msg   += "LFN=%s\nSE's list %s\n" % (lfn, seList)
+            if  not seList:
+                raise Exception(msg)
             site = self.getSiteFromSDB(seList)
             if  not site:
-                msg  = "Fail to look-up CMS name for\n"
-                msg += "LFN=%s\n" % lfn
-                msg += "SE's list %s\n" % seList
-                msg += "Please check SiteDB that those SE's are registered."
                 raise Exception(msg)
         pfn = self.mapLFN(site, lfn, protocol=protocol)
         self._lock.acquire()
@@ -235,9 +235,10 @@ class FileLookup(MappingManager):
             parse_sitedb_json = jsonparser(the_page)
             mylist = [i['name'] for i in parse_sitedb_json.values() \
                                     if i['name'].find('T0_')==-1]
-            mylist.sort()
-            site = mylist[-1]
-            break
+            if  mylist:
+                mylist.sort()
+                site = mylist[-1]
+                break
         # Do some magic for T1's. SiteDB returns names as T1_US_FNAL, while
         # phedex will need name_Buffer, according to Simon there is a 
         # savannah ticket for that.

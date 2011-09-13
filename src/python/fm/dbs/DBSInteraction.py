@@ -163,9 +163,8 @@ class DBS(object):
             dbsurl = self.getdbsurl(dbs)
             data = urllib2.urlopen(dbsurl, urllib.urlencode(params,
                 doseq=True)).read()
-#            blockList = parseDBSoutput(data)
             blockList = self.dbsparser(dbs, data)
-            if  len(blockList):
+            if  len(blockList) and isinstance(blockList[0], list):
                 return blockList
         return []
 

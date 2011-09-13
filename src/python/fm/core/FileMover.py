@@ -44,8 +44,7 @@ class FileMover(ActivityObject):
             if  not self.exclude_sites.count(site):
                 self.exclude_sites.append(site)
             if not site:
-                raise Exception("Unable to map LFN %s to site.  Is it a "
-                                "valid CMS file?" % lfn)
+                raise Exception("Unable to map LFN %s to T[1-3] site." % lfn)
         self._create_dest_dir(dest_dir)
 
     def getLFN(self):
