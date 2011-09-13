@@ -267,8 +267,11 @@ class FileMoverService(TemplatedPage):
             if  statusCode == StatusCode.DONE: # append remove request
                 statusMsg += " | " + removeLfn(lfn)
             else: # sanitize msg and append cancel request
-                img = """<img src="images/loading.gif"/>&nbsp;"""
                 msg = cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
+                if  statusMsg.find('error') != -1:
+                    img = ''
+                else:
+                    img = """<img src="images/loading.gif"/>&nbsp;"""
                 statusMsg  = img + msg
             if  style:
                 style = ""
@@ -317,7 +320,9 @@ class FileMoverService(TemplatedPage):
             else:
                 page += cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
         except ValueError as err:
-            pass
+            traceback.print_exc()
+            print lfn
+            print self.userDict
         except Exception as _exc:
             traceback.print_exc()
             print lfn
@@ -474,7 +479,6 @@ class FileMoverService(TemplatedPage):
             page = 'Removed'
         except Exception as _exc:
             page = handleExc()
-#        page += self.updateUserPage(user)
         return page
 
     def tooManyRequests(self, user):
@@ -512,9 +516,6 @@ class FileMoverService(TemplatedPage):
             else:
                 page += 'Already in queue'
             page += self.updateUserPage(user)
-            page += self.templatepage('templateTimeout', \
-                            fun="ajaxStatusOne", req=lfn, msec=10000)
-            page += '<!-- loading -->'
         except Exception as _exc:
             page = handleExc()
         if  html:
@@ -554,6 +555,7 @@ class FileMoverService(TemplatedPage):
         cherrypy.response.headers['Expire'] = 0
         user, _ = parse_dn(cherrypy.request.user['dn'])
         page = ""
+        lfn  = lfn.strip()
         spanid = spanId(lfn)
         page += """<span id="%s" name="%s">""" % (spanid, spanid)
         statCode = 0
@@ -563,11 +565,11 @@ class FileMoverService(TemplatedPage):
             statCode = self.setStat(user, lfn)
             if  statCode == StatusCode.FAILED:
                 # this happen when proxy is expired, need to look at a log
-                page += "request fails. "
+                page += "Request fails. "
             elif statCode == StatusCode.UNKNOWN:
                 page += 'lfn status unknown. '
             elif  statCode == StatusCode.CANCELLED:
-                page += 'transfer is cancelled. '
+                page += 'Transfer is cancelled. '
             elif statCode == StatusCode.REMOVED:
                 page += 'lfn is removed. '
             elif statCode and statCode not in stop_codes:

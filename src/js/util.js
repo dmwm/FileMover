@@ -35,7 +35,8 @@ function ajaxRequest()
 {
     wait();
     var interval = 3000;
-    var file = escape($F('lfn'));
+    String.prototype.trim = function() { return this.replace(/^\s+|\s+$/g, ""); }
+    var file = escape($F('lfn').trim());
     new Ajax.Updater('fm_response', '/filemover/request', 
     { method: 'get' ,
       parameters: 'lfn=' + file,
