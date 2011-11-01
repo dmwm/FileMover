@@ -27,7 +27,7 @@ def jsonparser(data_str):
     return res
 
 def phedex_datasvc(query, db='prod',
-        endpoint='http://cmsweb.cern.ch/phedex/datasvc', **kw):
+        endpoint='http://cmsweb-testbed.cern.ch/phedex/datasvc', **kw):
     """
     Query the PhEDEx data service, then evaluate the resulting JSON.
     """
