@@ -12,6 +12,8 @@ def fm_config(iconfig=None):
     FileMover configuration
     """
     dbs = iconfig.section_('dbs')
+    phedex = iconfig.section_('phedex')
+    sitedb = iconfig.section_('sitedb')
     fmws = iconfig.section_('fmws')
     file_manager = iconfig.section_('file_manager')
     file_lookup = iconfig.section_('file_lookup')
@@ -43,6 +45,12 @@ def fm_config(iconfig=None):
     config.set('file_lookup', 'priority_0', file_lookup.priority_0)
     config.set('file_lookup', 'priority_1', file_lookup.priority_1)
     config.set('file_lookup', 'priority_2', file_lookup.priority_2)
+
+    config.add_section('phedex')
+    config.set('phedex', 'url', phedex.url)
+
+    config.add_section('sitedb')
+    config.set('sitedb', 'url', sitedb.url)
 
     return config
 

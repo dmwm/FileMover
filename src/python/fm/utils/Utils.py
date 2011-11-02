@@ -13,6 +13,7 @@ import sys
 import cgi
 import stat
 import time
+import json
 import urllib
 import urllib2
 import hashlib
@@ -160,22 +161,40 @@ def getExcMessage(userMode = 'user'):
         return traceback.format_exc()
     return msg
 
-def getLFNSize(lfn):
+def jsonparser(data_str):
+    """JSON parser"""
+    try:
+        res = json.loads(data_str)
+    except:
+        res = eval(data_str, { "null": None, "__builtins__": None }, {})
+    return res
+
+def phedex_datasvc(api, urlbase, **kw): 
+    """
+    Query the PhEDEx data service, then evaluate the resulting JSON.
+    """
+    get_params = urllib.urlencode(kw)
+    url = os.path.join(urlbase, api)
+    url += "?" + get_params
+    try:
+        results = urllib2.urlopen(url).read()
+    except Exception as exc:
+        print "\n####### FAILED to contact Phedex, url=%s, exception=%s" \
+                % (url, str(exc))
+        raise Exception("Failed to contact the PhEDEx datasvc")
+    try:
+        return jsonparser(results)
+    except:
+        raise Exception("PhEDEx datasvc returned an error.")
+
+def getLFNSize(lfn, phedex_url):
     """return lfn size"""
-    url = "https://cmsweb.cern.ch/dbs_discovery/aSearch"
-    query = "find file.size where file=%s" % lfn.strip().replace("//","/")
-    iParams = {'dbsInst':'cms_dbs_prod_global',
-               'html':'0',
-               'caseSensitive':'on',
-               '_idx':'0',
-               'pagerStep':'1',
-               'userInput': query,
-               'xml':'0',
-               'details':'0',
-               'cff':'0',
-               'method':'dbsapi'}
-    data = urllib2.urlopen(url, urllib.urlencode(iParams)).read()
-    return data.split()[-1]
+    res = phedex_datasvc('fileReplicas', phedex_url, lfn=lfn)
+    for ifile in res['phedex']['block']:
+        for row in ifile['file']:
+            if  lfn == row['name']:
+                return row['bytes'] 
+    return 'N/A'
 
 def day():
     """return today"""
@@ -183,14 +202,17 @@ def day():
 
 def getPercentageDone(tSize, fSize):
     """format output of percentage"""
-    return "%3.1f" % (long(tSize)*100/long(fSize))
+    try:
+        return "%3.1f" % (long(tSize)*100/long(fSize))
+    except:
+        return "%s/%s" % (tSize, fSize)
 
 class LfnInfoCache(object):
     """
        Simple cache class to keep lfn around
     """
     def __init__(self, config):
-        self.dbs = config.items('dbs')
+        self.phedex_url = config.get('phedex', 'url')
         self.lfnDict = {}
         self.day = day()
         
@@ -202,7 +224,7 @@ class LfnInfoCache(object):
         if  self.lfnDict.has_key(lfn):
             return self.lfnDict[lfn]
         else:
-            lfnsize = getLFNSize(lfn)
+            lfnsize = getLFNSize(lfn, self.phedex_url)
             self.lfnDict[lfn] = lfnsize
             return lfnsize
 

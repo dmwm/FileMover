@@ -200,7 +200,7 @@ class TransferWrapper(ActivityObject):
     def file_progress_status(self):
         """Retrieve status of the file transfer"""
         if self.dest.startswith('file:///'):
-            dest = self.dest[7:]
+            dest = self.dest[8:]
         else:
             dest = self.dest
         try:
@@ -218,6 +218,7 @@ class TransferWrapper(ActivityObject):
             try: 
                 baseDir = self.cp.get('file_manager', 'base_directory')
                 myLfn = dest.replace("file://", "").replace(baseDir, "")
+                myLfn = myLfn.replace('//', '/')
                 perc = "%s%%," % getPercentageDone(size,
                    self.lfnInfoCache.getSize(myLfn))
             except:

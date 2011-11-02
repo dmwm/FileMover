@@ -182,7 +182,7 @@ class FileMoverService(TemplatedPage):
         if  not os.path.isdir(self.jsdir):
             self.jsdir = os.environ['FM_JSPATH']
         if  not os.environ.has_key('YUI_ROOT'):
-            msg = ''
+            msg = 'YUI_ROOT is not set'
             raise Exception(msg)
         self.yuidir = os.environ['YUI_ROOT']
 
@@ -309,7 +309,7 @@ class FileMoverService(TemplatedPage):
                     filepath = "%s/%s/%s" % (self.download_dir, user, filename)
                     fileStat = os.stat(filepath)
                     fileSize = sizeFormat(fileStat[stat.ST_SIZE])
-                    msg  = "<a href=\"%s/%s\">Download (%s)</a> |" \
+                    msg  = "<a href=\"%s/%s\">Download (%s)</a>" \
                                 % (self.url, link, fileSize)
                     statList[idx] = (StatusCode.DONE, msg)
                 else:

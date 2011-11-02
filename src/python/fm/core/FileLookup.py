@@ -8,7 +8,6 @@ FileLookup performs look-up of files in CMS PhEDEx data-service
 import os
 import re
 import time
-import json
 import urllib
 import urllib2
 import threading
@@ -17,31 +16,7 @@ from ConfigParser import ConfigParser
 
 from fm.dbs.DBSInteraction import DBS
 from fm.core.MappingManager import MappingManager
-
-def jsonparser(data_str):
-    """JSON parser"""
-    try:
-        res = json.loads(data_str)
-    except:
-        res = eval(data_str, { "null": None, "__builtins__": None }, {})
-    return res
-
-def phedex_datasvc(query, db='prod',
-        endpoint='http://cmsweb.cern.ch/phedex/datasvc', **kw):
-    """
-    Query the PhEDEx data service, then evaluate the resulting JSON.
-    """
-    get_params = urllib.urlencode(kw)
-    url = os.path.join(endpoint, 'json', db, query)
-    url += "?" + get_params
-    try:
-        results = urllib2.urlopen(url).read()
-    except:
-        raise Exception("Failed to contact the PhEDEx datasvc")
-    try:
-        return jsonparser(results)
-    except:
-        raise Exception("PhEDEx datasvc returned an error.")
+from fm.utils.Utils import phedex_datasvc, jsonparser
 
 class FileLookup(MappingManager):
     """Main class which perform LFN/PFN/Site/SE operations"""
@@ -54,6 +29,8 @@ class FileLookup(MappingManager):
         dbsinst = cp.get('dbs', 'instance')
         dbsparams = cp.get('dbs', 'params')
         self._dbs = DBS(dbsurl, dbsinst, dbsparams)
+        self.phedex_url = cp.get('phedex', 'url')
+        self.sitedb_url = cp.get('sitedb', 'url')
         self._downSites = []
         self._lastSiteQuery = 0
         self._lock = threading.Lock()
@@ -80,7 +57,7 @@ class FileLookup(MappingManager):
         block = self._dbs.blockLookup(lfn)
         query = {'block':block}
         self.log.info("Looking for replicas of %s" % block)
-        results = phedex_datasvc('fileReplicas', block=block)
+        results = phedex_datasvc('fileReplicas', self.phedex_url, block=block)
         blocks = [i for i in results['phedex']['block'] \
                 if i.get('name', None) == block]
         if not blocks:
@@ -167,7 +144,7 @@ class FileLookup(MappingManager):
             data['protocol'] = protocol
         self.log.info("Mapping LFN %s for site %s using PhEDEx datasvc." % \
             (lfn, site))
-        data = phedex_datasvc('lfn2pfn', **data)
+        data = phedex_datasvc('lfn2pfn', self.phedex_url, **data)
         try:
             pfn = data['phedex']['mapping'][0]['pfn']
         except:
@@ -226,7 +203,7 @@ class FileLookup(MappingManager):
         # try another route, get SE from DBS, look-up CMS name from SiteDB
         site = ''
         for se in seList:
-            url = "https://cmsweb.cern.ch/sitedb/json/index/SEtoCMSName"
+            url = os.path.join(self.sitedb_url, "SEtoCMSName")
             values = {'name':se}
             data = urllib.urlencode(values)
             req  = urllib2.Request(url, data)
