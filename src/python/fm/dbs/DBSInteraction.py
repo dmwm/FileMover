@@ -10,7 +10,6 @@ information from DBS.
 import urllib
 import logging
 import urllib2
-import traceback
 
 from xml.dom.minidom import parse, parseString
 from fm.dbs.DBSParsers import parseDBSoutput_DBS_2_0_5, parseDBSoutput_DBS_2_0_6

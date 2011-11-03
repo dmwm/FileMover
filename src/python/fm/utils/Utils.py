@@ -23,6 +23,22 @@ import traceback
 digitsre = re.compile(r'\d+')         # finds groups of digits
 D_LEN = 3
 
+def dastimestamp(msg='FM '):
+    """
+    Return timestamp in pre-defined format. For simplicity we match
+    cherrypy date format.
+    """
+    tstamp = time.strftime('[%d/%b/%Y:%H:%M:%S]', time.localtime())
+    if  msg:
+        return msg + tstamp
+    return tstamp
+
+def print_exc(exc):
+    """Standard way to print exceptions"""
+    print dastimestamp('FM ERROR '), type(exc), str(exc)
+    _type, _value, exc_traceback = sys.exc_info()
+    traceback.print_tb(exc_traceback, file=sys.stdout)
+
 def genkey(query):
     """
     Generate a new key-hash for a given query. We use md5 hash for the
@@ -179,8 +195,8 @@ def phedex_datasvc(api, urlbase, **kw):
     try:
         results = urllib2.urlopen(url).read()
     except Exception as exc:
-        print "\n####### FAILED to contact Phedex, url=%s, exception=%s" \
-                % (url, str(exc))
+        print "Fail to contact Phedex, url=%s" % url
+        print_exc(exc)
         raise Exception("Failed to contact the PhEDEx datasvc")
     try:
         return jsonparser(results)

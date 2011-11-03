@@ -4,13 +4,14 @@ FileMover release notes
 Release 1.x.x series
 --------------------
 
-1.0.12
+1.1.0
 
+  - Move to standard exception handling
+  - throw appropriate message when LFN is not found on any site, ticket #2769
   - Remove hard-coded phedex URL from the code; move it into configuration; ticket #2753
   - replace getLFNSize with phedex call instead of DBS-DD, ticket #2754
 
-This release is based on CMS COMP CVS tag V01_00_33 as starting point for CVS to SVN
-migration.
+1.0.X
 
   - adjust all code to score 8/10 in pylint tests
   - perform code clean-up and re-factoring with respect to WMCore guidelines and

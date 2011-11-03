@@ -12,12 +12,12 @@ import stat
 import errno
 import operator
 import threading
-import traceback
 
 from fm.core.ConfiguredObject import ConfiguredObject
 from fm.core.FileMover import FileMover
 from fm.core.Status import StatusCode, StatusMsg
 from fm.core.ThreadPool import ThreadPool
+from fm.utils.Utils import print_exc
 
 valid_lfn_re = re.compile('^/store(/[A-Za-z0-9][-A-Za-z0-9_.]*)+\\.root$')
 def validate_lfn(lfn):
@@ -179,9 +179,12 @@ class FileManager(ConfiguredObject):
                 self.pool.queue(mover)
             else:
                 self._add_user_request(lfn, user)
-        except:
-            traceback.print_exc()
-            self.failed_lfns[lfn] = (StatusCode.FAILED, StatusMsg.SERVER_FAILURE)
+        except Exception as exc:
+            print_exc(exc)
+            if  str(exc).find('Fail to look-up T[1-3] CMS site') != -1:
+                self.failed_lfns[lfn] = (StatusCode.FAILED, StatusMsg.NO_SITE)
+            else:
+                self.failed_lfns[lfn] = (StatusCode.FAILED, StatusMsg.SERVER_FAILURE)
         finally:
             self.request_lock.release()
 
@@ -251,8 +254,8 @@ class FileManager(ConfiguredObject):
                 if filename.startswith(clean_path):
                     try:
                         os.unlink(filename)
-                    except:
-                        traceback.print_exc()
+                    except Exception as exc:
+                        print_exc(exc)
                 deleted_size += size
 
     def graceful_exit(self):

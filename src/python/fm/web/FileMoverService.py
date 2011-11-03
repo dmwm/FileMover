@@ -12,7 +12,6 @@ import cgi
 import sys
 import stat
 import time
-import traceback
 
 # CherryPy/Cheetah modules
 import cherrypy
@@ -26,7 +25,7 @@ from   fm.utils.FMWSConfig  import fm_config
 from   fm.core.FileManager import FileManager, validate_lfn
 from   fm.core.Status import StatusCode, StatusMsg
 from   fm.dbs.DBSInteraction import DBS, dbsinstances
-from   fm.utils.Utils import sizeFormat, parse_dn
+from   fm.utils.Utils import sizeFormat, parse_dn, print_exc
 
 # WMCore/WebTools modules
 from WMCore.WebTools.Page import TemplatedPage
@@ -140,9 +139,9 @@ def spanId(lfn):
     """assign id for span tag based on provided lfn"""
     return lfn.split("/")[-1].replace(".root","")
 
-def handleExc():
+def handleExc(exc):
     """exception handler"""
-    traceback.print_exc()
+    print_exc(exc)
     page  = "<div>Request failed</div>"
     return page
 
@@ -260,15 +259,15 @@ class FileMoverService(TemplatedPage):
             lfn = iList[idx]
             try:
                 statusCode, statusMsg = sList[idx]
-            except:
+            except Exception as exc:
                 print "\n### userDict", self.userDict[user]
-                traceback.print_exc()
+                print_exc(exc)
                 HTTPError(500, "Server error")
             if  statusCode == StatusCode.DONE: # append remove request
                 statusMsg += " | " + removeLfn(lfn)
             else: # sanitize msg and append cancel request
                 msg = cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
-                if  statusMsg.find('error') != -1:
+                if  statusMsg.lower().find('error') != -1:
                     img = ''
                 else:
                     img = """<img src="images/loading.gif"/>&nbsp;"""
@@ -303,8 +302,8 @@ class FileMoverService(TemplatedPage):
                                 % (self.download_dir, user, filename))
                             os.symlink(pfn, "%s/%s/softlinks/%s" \
                                 % (self.download_dir, user, filename))
-                        except Exception as _exc:
-                            traceback.print_exc()
+                        except Exception as exc:
+                            print_exc(exc)
                     link     = "download/%s/%s" % (user, filename)
                     filepath = "%s/%s/%s" % (self.download_dir, user, filename)
                     fileStat = os.stat(filepath)
@@ -320,11 +319,11 @@ class FileMoverService(TemplatedPage):
             else:
                 page += cgi.escape(statusMsg) + " | " + cancelLfn(lfn)
         except ValueError as err:
-            traceback.print_exc()
+            print_exc(err)
             print lfn
             print self.userDict
-        except Exception as _exc:
-            traceback.print_exc()
+        except Exception as exc:
+            print_exc(exc)
             print lfn
             print self.userDict
         return page
@@ -477,8 +476,8 @@ class FileMoverService(TemplatedPage):
             status = StatusCode.REMOVED, StatusMsg.REMOVED
             self.setStat(user, lfn, status)
             page = 'Removed'
-        except Exception as _exc:
-            page = handleExc()
+        except Exception as exc:
+            page = handleExc(exc)
         return page
 
     def tooManyRequests(self, user):
@@ -516,8 +515,8 @@ class FileMoverService(TemplatedPage):
             else:
                 page += 'Already in queue'
             page += self.updateUserPage(user)
-        except Exception as _exc:
-            page = handleExc()
+        except Exception as exc:
+            page = handleExc(exc)
         if  html:
             main  = self.getTopHTML()
             main += self.templatepage('templateForm', name=name)
@@ -541,8 +540,8 @@ class FileMoverService(TemplatedPage):
             status = StatusCode.CANCELLED, StatusMsg.CANCELLED
             self.setStat(user, lfn, status)
             page = 'Request cancelled'
-        except Exception as _exc:
-            page = handleExc()
+        except Exception as exc:
+            page = handleExc(exc)
 #        page += self.updateUserPage(user)
         return page
 
@@ -575,8 +574,8 @@ class FileMoverService(TemplatedPage):
             elif statCode and statCode not in stop_codes:
                 page += self.templatepage('templateLoading', msg="")
             page += self.updatePageWithLfnInfo(user, lfn)
-        except Exception as _exc:
-            page += handleExc()
+        except Exception as exc:
+            page += handleExc(exc)
         page += "</span>"
         return page
 

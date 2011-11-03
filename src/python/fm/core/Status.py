@@ -30,6 +30,7 @@ class StatusMsg(object):
     REQUESTED = "Requested."
     CANCELLED = "File cancelled."
     REMOVED = "File removed."
+    NO_SITE = "Error, requested LFN is not found on any T1-3 CMS sites."
 
 class StatusCode(object):
     """Define FileMover status codes"""

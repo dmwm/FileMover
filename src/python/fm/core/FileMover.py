@@ -10,12 +10,11 @@ import time
 import errno
 import signal
 import logging
-import traceback
 
 from fm.core.Status import StatusMsg, StatusCode
 from fm.core.ActivityMonitor import ActivityObject, Monitor
 from fm.core.FileLookup import FileLookup
-from fm.utils.Utils import LfnInfoCache, getPercentageDone
+from fm.utils.Utils import LfnInfoCache, getPercentageDone, print_exc
 
 logging.basicConfig(level=logging.INFO)
 
@@ -258,8 +257,8 @@ class TransferWrapper(ActivityObject):
             self.log.info("Unlinking partially complete dest file %s." % dest)
             try:
                 os.unlink(dest)
-            except:
-                traceback.print_exc()
+            except Exception as exc:
+                print_exc(exc)
         else:
             self.log.info("Destination path %s doesn't exist; not deleting." % \
                 dest)
