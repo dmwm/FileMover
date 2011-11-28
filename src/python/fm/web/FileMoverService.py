@@ -521,8 +521,9 @@ class FileMoverService(TemplatedPage):
             main  = self.getTopHTML()
             main += self.templatepage('templateForm', name=name)
             main += '<div id="fm_response">'
+            page += self.templatepage('templateCheckStatus', lfn=lfn)
             main += page
-            page += '</div>'
+            main += '</div>'
             main += self.getBottomHTML()
             return main
         return page

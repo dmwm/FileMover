@@ -4,8 +4,9 @@ FileMover release notes
 Release 1.x.x series
 --------------------
 
-1.1.0
+1.1.X
 
+  - fix issue with status update for external requests, ticket #2908
   - Move to standard exception handling
   - throw appropriate message when LFN is not found on any site, ticket #2769
   - Remove hard-coded phedex URL from the code; move it into configuration; ticket #2753
