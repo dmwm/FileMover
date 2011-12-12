@@ -15,21 +15,41 @@ from optparse import OptionParser
 
 ONE_MONTH = 30*24*60*60
 
-def files(idir, threshold):
+def check_file(ifile, threshold):
+    "Check if file older then given threshold"
+    try:
+        fstat = os.stat(ifile)
+        if  time.time() - (fstat[stat.ST_ATIME] + threshold) > 0:
+            # it is older then given threshold
+            return ifile
+    except OSError as err:
+        return ifile # orphan file
+    return ''
+
+def files(idir, thr):
     "Prepare list of files for clean-up"
     for dirpath, dirnames, filenames in os.walk(os.path.join(idir, 'download')):
         if  not dirnames:
             for filename in filenames:
                 sfile = os.path.join(dirpath, filename) # soft-link file
-                try:
-                    fstat = os.stat(sfile)
-                    if  time.time() - (fstat[stat.ST_ATIME] + threshold) > 0:
-                        sarr  = sfile.split('/')
-                        hfile = os.path.join('/'.join(sarr[:-2]), sarr[-1]) # hard-link file
-                        mfile = os.readlink(sfile) # file from pool area
-                        yield sfile, hfile, mfile
-                except OSError as err:
-                    yield sfile, '', '' # orphan file
+                sarr  = sfile.split('/')
+                hfile = os.path.join('/'.join(sarr[:-2]), sarr[-1]) # hard-link file
+                mfile = os.readlink(sfile) # file from pool area
+                # check if files are older then given threshold
+                softfile = check_file(sfile, thr)
+                if  softfile:
+                    hardfile = hfile
+                else:
+                    hardfile = check_file(hfile, thr)
+                if  hardfile:
+                    if  os.stat(hardfile)[stat.ST_NLINK] > 2:
+                        hardfile = '' # more then 1 hard link exists, do not wipe out
+                    if  not os.path.isfile(hardfile):
+                        hardfile = ''
+                mainfile = check_file(mfile, thr)
+                if  mainfile and not os.path.isfile(mainfile):
+                    mainfile = ''
+                yield softfile, hardfile, mainfile
 
 def cleaner(idir, threshold=3*ONE_MONTH):
     """
@@ -75,5 +95,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
