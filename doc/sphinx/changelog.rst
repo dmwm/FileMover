@@ -6,6 +6,8 @@ Release 1.x.x series
 
 1.1.X
 
+  - add cleaner script, it reads input directory and printous FM files older
+    then certain threshold, ticket #963
   - fix issue with status update for external requests, ticket #2908
   - Move to standard exception handling
   - throw appropriate message when LFN is not found on any site, ticket #2769
