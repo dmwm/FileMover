@@ -13,6 +13,8 @@ import stat
 import time
 from optparse import OptionParser
 
+ONE_HOUR  = 60*60
+ONE_DAY   = 24*60*60
 ONE_MONTH = 30*24*60*60
 
 def check_file(ifile, threshold):
@@ -51,21 +53,27 @@ def files(idir, thr):
                     mainfile = ''
                 yield softfile, hardfile, mainfile
 
-def cleaner(idir, threshold=3*ONE_MONTH):
+def cleaner(idir, threshold=3*ONE_MONTH, dryrun=False):
     """
     Cleaner cleans files in specified input directory which are
     older then given threshold
     """
     for sfile, hfile, mfile in files(idir, threshold):
         if  os.path.islink(sfile):
-#            print "remove sfile %s" % sfile
-            os.remove(sfile)
+            if  dryrun:
+                print "remove sfile %s" % sfile
+            else:
+                os.remove(sfile)
         if  os.path.isfile(hfile):
-#            print "remove hfile %s" % hfile
-            os.remove(hfile)
+            if  dryrun:
+                print "remove hfile %s" % hfile
+            else:
+                os.remove(hfile)
         if  os.path.isfile(mfile):
-#            print "remove mfile %s" % mfile
-            os.remove(mfile)
+            if  dryrun:
+                print "remove mfile %s" % mfile
+            else:
+                os.remove(mfile)
 
 class CliOptionParser: 
     "cli option parser"
@@ -73,13 +81,36 @@ class CliOptionParser:
         self.parser = OptionParser()
         self.parser.add_option("-d", "--dir", action="store", type="string",
             default=None, dest="dir", help="directory to scan")
-        self.parser.add_option("-t", "--time", action="store", type="int",
-            default=3, dest="time",
+        self.parser.add_option("-t", "--time", action="store", type="string",
+            default="3m", dest="time",
             help="time threashold in months, default is 3 months")
+        self.parser.add_option("--dry-run", action="store_true",
+            default=False, dest="dryrun",
+            help="do not execute rm command and only print out expired files")
     def get_opt(self):
         "Returns parse list of options"
         return self.parser.parse_args()
 
+def threshold(datevalue):
+    "Return sec for given datevalue, where datevalue is in Xh/Xd/Xm data format"
+    val = None
+    try:
+        if  datevalue[-1] == 'h':
+            val = int(datevalue[:-1])*ONE_HOUR
+        elif datevalue[-1] == 'd':
+            val = int(datevalue[:-1])*ONE_DAY
+        elif datevalue[-1] == 'm':
+            val = int(datevalue[:-1])*ONE_MONTH
+        else:
+            val = None
+    except:
+        raise
+    if  not val:
+        msg  = 'Wrong data format, supported formats: Xh, Xd, Xm\n'
+        msg += 'X is appropriate number for hour/day/month data formats'
+        raise Exception(msg)
+    print "\n### datevalue", datevalue, val
+    return val
 
 def main():
     "Main function"
@@ -87,17 +118,13 @@ def main():
     if  not opts.dir:
         print "Usage: %s --help" % sys.argv[0]
         sys.exit(1)
-    thr = 3*ONE_MONTH
     try:
-        if  opts.time > 12:
-            raise Exception('Wrong month data format')
-        thr = opts.time*ONE_MONTH
+        thr = threshold(opts.time)
     except Exception as exc:
         print str(exc)
-        print "Wrong threshold data format"
         print "Usage: %s --help" % sys.argv[0]
         sys.exit(1)
-    cleaner(opts.dir, thr)
+    cleaner(opts.dir, thr, opts.dryrun)
 
 if __name__ == '__main__':
     main()
