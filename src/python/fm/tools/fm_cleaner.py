@@ -57,9 +57,15 @@ def cleaner(idir, threshold=3*ONE_MONTH):
     older then given threshold
     """
     for sfile, hfile, mfile in files(idir, threshold):
-        print "sfile %s" % sfile
-        print "hfile %s" % hfile
-        print "mfile %s" % mfile
+        if  os.path.islink(sfile):
+#            print "remove sfile %s" % sfile
+            os.remove(sfile)
+        if  os.path.isfile(hfile):
+#            print "remove hfile %s" % hfile
+            os.remove(hfile)
+        if  os.path.isfile(mfile):
+#            print "remove mfile %s" % mfile
+            os.remove(mfile)
 
 class CliOptionParser: 
     "cli option parser"
