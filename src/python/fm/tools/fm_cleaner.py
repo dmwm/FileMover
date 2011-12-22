@@ -11,6 +11,9 @@ import os
 import sys
 import stat
 import time
+import urllib
+import httplib
+import urllib2
 from optparse import OptionParser
 
 ONE_HOUR  = 60*60
@@ -39,6 +42,8 @@ def files(idir, thr):
                 mfile = os.readlink(sfile) # file from pool area
                 # check if files are older then given threshold
                 softfile = check_file(sfile, thr)
+                lfn = '/' + mfile.replace(idir,'')
+                lfn = lfn.replace('//', '/')
                 if  softfile:
                     hardfile = hfile
                 else:
@@ -51,14 +56,14 @@ def files(idir, thr):
                 mainfile = check_file(mfile, thr)
                 if  mainfile and not os.path.isfile(mainfile):
                     mainfile = ''
-                yield softfile, hardfile, mainfile
+                yield lfn, softfile, hardfile, mainfile
 
-def cleaner(idir, threshold=3*ONE_MONTH, dryrun=False):
+def cleaner(url_base, idir, threshold=3*ONE_MONTH, dryrun=False, debug=False):
     """
     Cleaner cleans files in specified input directory which are
     older then given threshold
     """
-    for sfile, hfile, mfile in files(idir, threshold):
+    for lfn, sfile, hfile, mfile in files(idir, threshold):
         if  os.path.islink(sfile):
             if  dryrun:
                 print "remove sfile %s" % sfile
@@ -74,11 +79,104 @@ def cleaner(idir, threshold=3*ONE_MONTH, dryrun=False):
                 print "remove mfile %s" % mfile
             else:
                 os.remove(mfile)
+        if  dryrun:
+            print "remove lfn %s" % lfn
+        else:
+            request2remove(url_base, lfn, debug)
+
+def request2remove(url_base, lfn, debug=False):
+    "Send remove request to FM server to remove given lfn"
+    url = url_base + '/remove?lfn=%s' % lfn
+    if  debug:
+        print "contact", url
+    req = urllib2.Request(url)
+    ckey, cert = get_key_cert()
+    handler = HTTPSClientAuthHandler(ckey, cert, debug)
+    opener = urllib2.build_opener(handler)
+    urllib2.install_opener(opener)
+    fdesc = urllib2.urlopen(req)
+    if  debug:
+        print fdesc.info()
+    data = fdesc.read()
+    fdesc.close()
+    if  debug:
+        print data
+
+def get_key_cert():
+    """
+    Get user key/certificate
+    """
+    key  = None
+    cert = None
+    globus_key  = os.path.join(os.environ['HOME'], '.globus/userkey.pem')
+    globus_cert = os.path.join(os.environ['HOME'], '.globus/usercert.pem')
+    if  os.path.isfile(globus_key):
+        key  = globus_key
+    if  os.path.isfile(globus_cert):
+        cert  = globus_cert
+
+    # First presendence to HOST Certificate, RARE
+    if  os.environ.has_key('X509_HOST_CERT'):
+        cert = os.environ['X509_HOST_CERT']
+        key  = os.environ['X509_HOST_KEY']
+
+    # Second preference to User Proxy, very common
+    elif os.environ.has_key('X509_USER_PROXY'):
+        cert = os.environ['X509_USER_PROXY']
+        key  = cert
+
+    # Third preference to User Cert/Proxy combinition
+    elif os.environ.has_key('X509_USER_CERT'):
+        cert = os.environ['X509_USER_CERT']
+        key  = os.environ['X509_USER_KEY']
+
+    # Worst case, look for cert at default location /tmp/x509up_u$uid
+    elif not key or not cert:
+        uid  = os.getuid()
+        cert = '/tmp/x509up_u'+str(uid)
+        key  = cert
+
+    if  not os.path.exists(cert):
+        raise Exception("Certificate PEM file %s not found" % key)
+    if  not os.path.exists(key):
+        raise Exception("Key PEM file %s not found" % key)
+
+    return key, cert
+
+class HTTPSClientAuthHandler(urllib2.HTTPSHandler):
+    """
+    Simple HTTPS client authentication class based on provided
+    key/ca information
+    """
+    def __init__(self, key=None, cert=None, debug=0):
+        if  debug:
+            urllib2.HTTPSHandler.__init__(self, debuglevel=1)
+        else:
+            urllib2.HTTPSHandler.__init__(self)
+        self.key = key
+        self.cert = cert
+        if  debug:
+            print "key ", self.key
+            print "cert", self.cert
+
+    def https_open(self, req):
+        """Open request method"""
+        return self.do_open(self.get_connection, req)
+
+    def get_connection(self, host, timeout=300):
+        """Connection method"""
+        if  self.key:
+            return httplib.HTTPSConnection(host, key_file=self.key,
+                                                cert_file=self.cert)
+        return httplib.HTTPSConnection(host)
 
 class CliOptionParser: 
     "cli option parser"
     def __init__(self):
         self.parser = OptionParser()
+        url = 'https://cmsweb.cern.ch/filemover'
+        self.parser.add_option("-u", "--url", action="store", type="string",
+            default=url, dest="url", help="URL base of FileMover, default %s" % url)
         self.parser.add_option("-d", "--dir", action="store", type="string",
             default=None, dest="dir", help="directory to scan")
         self.parser.add_option("-t", "--time", action="store", type="string",
@@ -87,6 +185,9 @@ class CliOptionParser:
         self.parser.add_option("--dry-run", action="store_true",
             default=False, dest="dryrun",
             help="do not execute rm command and only print out expired files")
+        self.parser.add_option("--debug", action="store_true",
+            default=False, dest="debug",
+            help="debug flag")
     def get_opt(self):
         "Returns parse list of options"
         return self.parser.parse_args()
@@ -96,11 +197,11 @@ def threshold(datevalue):
     val = None
     try:
         if  datevalue[-1] == 'h':
-            val = int(datevalue[:-1])*ONE_HOUR
+            val = float(datevalue[:-1])*ONE_HOUR
         elif datevalue[-1] == 'd':
-            val = int(datevalue[:-1])*ONE_DAY
+            val = float(datevalue[:-1])*ONE_DAY
         elif datevalue[-1] == 'm':
-            val = int(datevalue[:-1])*ONE_MONTH
+            val = float(datevalue[:-1])*ONE_MONTH
         else:
             val = None
     except:
@@ -109,7 +210,6 @@ def threshold(datevalue):
         msg  = 'Wrong data format, supported formats: Xh, Xd, Xm\n'
         msg += 'X is appropriate number for hour/day/month data formats'
         raise Exception(msg)
-    print "\n### datevalue", datevalue, val
     return val
 
 def main():
@@ -124,7 +224,7 @@ def main():
         print str(exc)
         print "Usage: %s --help" % sys.argv[0]
         sys.exit(1)
-    cleaner(opts.dir, thr, opts.dryrun)
+    cleaner(opts.url, opts.dir, thr, opts.dryrun, opts.debug)
 
 if __name__ == '__main__':
     main()
