@@ -127,6 +127,8 @@ def srmcp(lfn, verbose=None):
                 cmsname = "%s_Buffer" % cmsname
         url = 'https://cmsweb.cern.ch/phedex/datasvc/json/prod/lfn2pfn'
         params = {'protocol':'srmv2', 'lfn':lfn, 'node':cmsname}
+        if  verbose:
+            print "Request %s?%s" % (url, urllib.urlencode(params, doseq=True))
         data = urllib2.urlopen(url, urllib.urlencode(params, doseq=True))
         result = json.loads(data.read())
         try:

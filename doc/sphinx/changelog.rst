@@ -6,6 +6,8 @@ Release 1.x.x series
 
 1.1.X
 
+  - use development as version value in __init__.py and replace it with
+    actual version at RPM build stage
   - add cleaner script, it reads input directory and printous FM files older
     then certain threshold, ticket #963
   - fix issue with status update for external requests, ticket #2908

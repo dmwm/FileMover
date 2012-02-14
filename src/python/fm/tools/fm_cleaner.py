@@ -82,7 +82,10 @@ def cleaner(url_base, idir, threshold=3*ONE_MONTH, dryrun=False, debug=False):
         if  dryrun:
             print "remove lfn %s" % lfn
         else:
-            request2remove(url_base, lfn, debug)
+            try:
+                request2remove(url_base, lfn, debug)
+            except Exception as err:
+                pass
 
 def request2remove(url_base, lfn, debug=False):
     "Send remove request to FM server to remove given lfn"
