@@ -136,3 +136,24 @@ table.fmws_table td.td_left {
     border:none;
     border-top: 1px dotted #CCCCCC;
 }
+div#banner
+{
+    color: #263750;
+    background-color: rgb(235, 250, 229);
+    border-bottom: 1px solid rgb(128, 141, 119);
+    margin-left:-20px;
+    margin-right:-20px;
+    margin-top:-10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    -webkit-box-shadow: 0px 0px 20px #666666;
+    -moz-box-shadow: 0px 0px 20px #666666;
+    -o-box-shadow: 0px 0px 20px #666666;
+    box-shadow: 0px 0px 20px #666666;
+}
+div#banner h3
+{
+    font-size: 16px;
+    font-weight: bold;
+    font-family: sans-serif;
+}

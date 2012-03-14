@@ -6,6 +6,7 @@ Release 1.x.x series
 
 1.1.X
 
+  - remove dependency on webtools-base
   - use development as version value in __init__.py and replace it with
     actual version at RPM build stage
   - add cleaner script, it reads input directory and printous FM files older

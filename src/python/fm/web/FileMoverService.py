@@ -236,7 +236,7 @@ class FileMoverService(TemplatedPage):
 
     def getTopHTML(self):
         """HTML top template"""
-        page = self.templatepage('templateTop', url=self.url)
+        page = self.templatepage('templateTop', url=self.url, base=self.base)
         return page
 
     def getBottomHTML(self):
