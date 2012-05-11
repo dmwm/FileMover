@@ -121,7 +121,7 @@ def srmcp(lfn, verbose=None):
     pfnlist = []
     for cmsname in sitedict.values():
         if  cmsname.count('T0', 0, 2) == 1:
-            continue # skip T0's
+            cmsname = "%s_MSS" % cmsname
         if  cmsname.count('T1', 0, 2) == 1:
             if  cmsname.count('Buffer') == 0 and cmsname.count('Buffer') ==0:
                 cmsname = "%s_Buffer" % cmsname
@@ -151,17 +151,13 @@ def srmcp(lfn, verbose=None):
     # finally let's create srmcp commands for each found pfn
     for item in pfnlist:
         filename = item.split("/")[-1]
+        # srmcp command
         cmd  = "srmcp -debug=true -srm_protocol_version=2"
         cmd += " -retry_num=1 -streams_num=1 %s file:////tmp/%s" \
                 % (item, filename)
-        # Lookup TURL
-        try:
-            cmd_urls = "lcg-getturls -T srmv2 -b -p gsiftp %s" % item
-            os.system(cmd_urls)
-        except:
-            pass
-#        if  verbose:
-#            print cmd
+        yield cmd
+        # lcg-cp command
+        cmd = "lcg-cp --verbose --vo cms %s file:////tmp/%s" % (item, filename) 
         yield cmd
 
 def main():
@@ -172,7 +168,7 @@ def main():
         print "Usage: fm_cli.py --help"
         sys.exit(0)
     for cmd in srmcp(opts.lfn, opts.verbose):
-        print cmd
+        print "\n", cmd
 #
 # main
 #
