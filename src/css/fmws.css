@@ -6,6 +6,9 @@
     margin: 0;
     padding: 0;
 }
+.width_100 {
+    width: 100%;
+}
 .padright {
     padding-right: 1cm;
 }
