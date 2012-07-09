@@ -35,7 +35,10 @@ phedex.url = 'https://cmsweb.cern.ch/phedex/datasvc/json/prod'
 
 # sitedb section
 sitedb = config.FileMover.section_('sitedb')
-sitedb.url = 'https://cmsweb.cern.ch/sitedb/json/index'
+# New SiteDB
+sitedb.url = 'https://cmsweb.cern.ch'
+# Old SiteDB
+#sitedb.url = 'https://cmsweb.cern.ch/sitedb/json/index'
 
 # dbs section
 dbs = config.FileMover.section_('dbs')
