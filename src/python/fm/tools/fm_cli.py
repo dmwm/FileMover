@@ -12,6 +12,8 @@ import urllib2
 from   optparse import OptionParser
 import xml.etree.ElementTree as ET
 
+from fm.core.SiteDB import SiteDBManager
+
 class FMOptionParser: 
     """
     FM cli option parser
@@ -74,7 +76,7 @@ def srmcp(lfn, verbose=None):
             print "file: %s" % lfn
             print "size: %s Bytes, %s MB" \
                     % (file_size, long(file_size)/1024./1024.)
-        print
+        print "Lookup LFN in %s" % dbs
         params = {'api':'executeQuery', 'apiversion':'DBS_2_0_9', \
                         'query':query}
         data = urllib2.urlopen(url, urllib.urlencode(params))
@@ -96,21 +98,12 @@ def srmcp(lfn, verbose=None):
 
     # query SiteDB for CMS names
     sitedict = {}
+    sitedbmgr = SiteDBManager()
     for item in sites:
         site = item['site']
-        url = 'https://cmsweb.cern.ch/sitedb/json/index/SEtoCMSName?name=%s' \
-                        % site
-        data = urllib2.urlopen(url).read()
-        try:
-            cmsnamedict = json.loads(data)
-        except:
-            msg = "WARNING, fail to JSON'ify data:\n%s" % data
-            cmsnamedict = eval(data, { "__builtins__": None }, {})
-        try:
-            cmsname = cmsnamedict['0']['name']
-            sitedict[site] = cmsname
-        except Exception, _exc:
-            pass
+        if  site:
+            sitedict[site] = sitedbmgr.get_name(site)
+
     if  verbose:
         print "SiteDB reports:"
         print "---------------"
@@ -120,11 +113,6 @@ def srmcp(lfn, verbose=None):
     # query Phedex for PFNs
     pfnlist = []
     for cmsname in sitedict.values():
-        if  cmsname.count('T0', 0, 2) == 1:
-            cmsname = "%s_MSS" % cmsname
-        if  cmsname.count('T1', 0, 2) == 1:
-            if  cmsname.count('Buffer') == 0 and cmsname.count('Buffer') ==0:
-                cmsname = "%s_Buffer" % cmsname
         url = 'https://cmsweb.cern.ch/phedex/datasvc/json/prod/lfn2pfn'
         params = {'protocol':'srmv2', 'lfn':lfn, 'node':cmsname}
         if  verbose:
