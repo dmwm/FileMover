@@ -17,6 +17,7 @@ from ConfigParser import ConfigParser
 from fm.dbs.DBSInteraction import DBS
 from fm.core.MappingManager import MappingManager
 from fm.utils.Utils import phedex_datasvc, jsonparser
+from fm.core.SiteDB import SiteDBManager
 
 class FileLookup(MappingManager):
     """Main class which perform LFN/PFN/Site/SE operations"""
@@ -31,6 +32,7 @@ class FileLookup(MappingManager):
         self._dbs = DBS(dbsurl, dbsinst, dbsparams)
         self.phedex_url = cp.get('phedex', 'url')
         self.sitedb_url = cp.get('sitedb', 'url')
+        self.sitedb = SiteDBManager(base_url=self.sitedb_url)
         self._downSites = []
         self._lastSiteQuery = 0
         self._lock = threading.Lock()
@@ -183,7 +185,7 @@ class FileLookup(MappingManager):
             msg   += "LFN=%s\nSE's list %s\n" % (lfn, seList)
             if  not seList:
                 raise Exception(msg)
-            site = self.getSiteFromSDB(seList)
+            site = self.getSiteFromSDB(seList, exclude_sites)
             if  not site:
                 raise Exception(msg)
         pfn = self.mapLFN(site, lfn, protocol=protocol)
@@ -196,32 +198,16 @@ class FileLookup(MappingManager):
             self._lock.release()
         return pfn, site
 
-    def getSiteFromSDB(self, seList):
+    def getSiteFromSDB(self, seList, exclude_sites):
         """
         Get SE names for give cms names
         """
-        # try another route, get SE from DBS, look-up CMS name from SiteDB
-        site = ''
-        for se in seList:
-            url = os.path.join(self.sitedb_url, "SEtoCMSName")
-            values = {'name':se}
-            data = urllib.urlencode(values)
-            req  = urllib2.Request(url, data)
-            response = urllib2.urlopen(req)
-            the_page = response.read().replace('null', 'None')
-            parse_sitedb_json = jsonparser(the_page)
-            mylist = [i['name'] for i in parse_sitedb_json.values() \
-                                    if i['name'].find('T0_')==-1]
-            if  mylist:
-                mylist.sort()
-                site = mylist[-1]
-                break
-        # Do some magic for T1's. SiteDB returns names as T1_US_FNAL, while
-        # phedex will need name_Buffer, according to Simon there is a 
-        # savannah ticket for that.
-        if site.count('T1', 0, 2) == 1:
-            if site.count('Buffer') == 0 and site.count('Buffer') ==0:
-                site = "%s_Buffer" % site
+        sites = []
+        for sename in seList:
+            site = self.sitedb.get_name(sename)
+            if  site:
+                sites.append(site)
+        site = self.pickSite(sites, exclude_sites)
         return site
     
     def _lookup(self, SURL):
