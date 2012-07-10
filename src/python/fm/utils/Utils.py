@@ -14,6 +14,7 @@ import cgi
 import stat
 import time
 import json
+import types
 import urllib
 import urllib2
 import hashlib
