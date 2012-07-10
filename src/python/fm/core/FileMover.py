@@ -218,8 +218,11 @@ class TransferWrapper(ActivityObject):
                 baseDir = self.cp.get('file_manager', 'base_directory')
                 myLfn = dest.replace("file://", "").replace(baseDir, "")
                 myLfn = myLfn.replace('//', '/')
-                perc = "%s%%," % getPercentageDone(size,
-                   self.lfnInfoCache.getSize(myLfn))
+                lfnSize = self.lfnInfoCache.getSize(myLfn)
+                if  lfnSize == 'N/A':
+                    perc = ''
+                else:
+                    perc = "%s%%," % getPercentageDone(size, lfnSize)
             except:
                 pass
             return StatusMsg.IN_PROGRESS % (perc, round(size/1024.0**2))
