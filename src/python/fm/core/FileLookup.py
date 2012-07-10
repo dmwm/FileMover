@@ -32,7 +32,7 @@ class FileLookup(MappingManager):
         self._dbs = DBS(dbsurl, dbsinst, dbsparams)
         self.phedex_url = cp.get('phedex', 'url')
         self.sitedb_url = cp.get('sitedb', 'url')
-        self.sitedb = SiteDBManager(base_url=self.sitedb_url)
+        self.sitedb = SiteDBManager(self.sitedb_url)
         self._downSites = []
         self._lastSiteQuery = 0
         self._lock = threading.Lock()
