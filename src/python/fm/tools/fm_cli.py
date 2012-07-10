@@ -98,7 +98,8 @@ def srmcp(lfn, verbose=None):
 
     # query SiteDB for CMS names
     sitedict = {}
-    sitedbmgr = SiteDBManager()
+    sitedb_url = 'https://cmsweb.cern.ch/sitedb/data/prod'
+    sitedbmgr = SiteDBManager(sitedb_url)
     for item in sites:
         site = item['site']
         if  site:
