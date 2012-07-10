@@ -36,7 +36,7 @@ phedex.url = 'https://cmsweb.cern.ch/phedex/datasvc/json/prod'
 # sitedb section
 sitedb = config.FileMover.section_('sitedb')
 # New SiteDB
-sitedb.url = 'https://cmsweb.cern.ch'
+sitedb.url = 'https://cmsweb.cern.ch/sitedb/data/prod'
 # Old SiteDB
 #sitedb.url = 'https://cmsweb.cern.ch/sitedb/json/index'
 
@@ -73,9 +73,10 @@ file_manager.max_movers = 5
 
 # FileLookup configuration
 file_lookup = config.FileMover.section_('file_lookup')
-file_lookup.priority_2 = 'T1'
-file_lookup.priority_1 = 'T2'
 file_lookup.priority_0 = 'T1_US'
+file_lookup.priority_1 = 'T2'
+file_lookup.priority_2 = 'T1'
+file_lookup.priority_3 = 'T3'
 
 # Transfer wrapper command configuration
 transfer_wrapper = config.FileMover.section_('transfer_wrapper')
