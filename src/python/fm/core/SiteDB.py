@@ -15,7 +15,6 @@ import urllib2
 
 # FileMover modules
 from fm.utils.HttpUtils import HTTPSClientAuthHandler, get_data
-from fm.utils.Utils import get_key_cert
 
 def rowdict(columns, row):
     """Convert given row list into dict with column keys"""
@@ -40,11 +39,10 @@ def parser(data):
 
 class SiteDBManager(object):
     "SiteDB manager"
-    def __init__(self, base_url='https://cmsweb.cern.ch', threshold = 10800):
+    def __init__(self, url, threshold = 10800):
         self.resources = []
         self.names = []
-        self.url = base_url + '/sitedb/data/prod/'
-        self.ckey, self.cert = get_key_cert()
+        self.url = url
         self.mapping = {}
         self.timestamp = time.time()
         self.threshold = threshold # in sec, default 3 hours
@@ -53,13 +51,13 @@ class SiteDBManager(object):
     def init(self):
         "initialize SiteDB connection and retrieve all names"
         # get site names
-        url = self.url + 'site-names'
+        url = self.url + '/site-names'
         names = {}
         with get_data(url) as data:
             for row in parser(data.read()):
                 names[row['site_name']] = row['alias']
         # get site resources
-        url = self.url + 'site-resources'
+        url = self.url + '/site-resources'
         with get_data(url) as data:
             for row in parser(data.read()):
                 fqdn = row['fqdn']
