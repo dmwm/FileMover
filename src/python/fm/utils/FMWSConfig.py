@@ -45,6 +45,7 @@ def fm_config(iconfig=None):
     config.set('file_lookup', 'priority_0', file_lookup.priority_0)
     config.set('file_lookup', 'priority_1', file_lookup.priority_1)
     config.set('file_lookup', 'priority_2', file_lookup.priority_2)
+    config.set('file_lookup', 'priority_3', file_lookup.priority_3)
 
     config.add_section('phedex')
     config.set('phedex', 'url', phedex.url)
