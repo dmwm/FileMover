@@ -279,6 +279,7 @@ class FileMoverService(TemplatedPage):
             spanid = spanId(lfn)
             page += self.templatepage('templateLfnRow', style=style, lfn=lfn, \
                 spanid=spanid, statusCode=statusCode, statusMsg=statusMsg)
+            page += self.templatepage('templateCheckStatus', lfn=lfn)
         return page
 
     def updatePageWithLfnInfo(self, user, lfn):
