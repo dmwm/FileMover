@@ -6,6 +6,7 @@ Release 1.x.x series
 
 1.1.X
 
+  - Switch to new SiteDB APIs
   - Fix update status with premature ending of web-session, ticket #3389
   - remove dependency on webtools-base
   - use development as version value in __init__.py and replace it with
