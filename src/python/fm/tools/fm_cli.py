@@ -13,6 +13,7 @@ from   optparse import OptionParser
 import xml.etree.ElementTree as ET
 
 from fm.core.SiteDB import SiteDBManager
+from fm.utils.Utils import parse_dn
 
 class FMOptionParser: 
     """
@@ -27,6 +28,8 @@ class FMOptionParser:
         self.parser.add_option("--lfn", action="store", 
                                         dest="lfn",
              help="specify input lfn")
+        self.parser.add_option("--dn", action="store", dest="dn",
+             help="find FM id for given DN")
 
     def get_opt(self):
         """
@@ -153,6 +156,9 @@ def main():
     """Main function"""
     mgr  = FMOptionParser()
     opts, _ = mgr.get_opt()
+    if  opts.dn:
+        print parse_dn(opts.dn)
+        sys.exit(0)
     if  not opts.lfn:
         print "Usage: fm_cli.py --help"
         sys.exit(0)
