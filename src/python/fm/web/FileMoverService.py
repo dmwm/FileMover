@@ -345,17 +345,24 @@ class FileMoverService(TemplatedPage):
         page = self.templatepage('templateResolveLfns', lfnList=lfnList)
         return page
         
+    @expose
+    @checkargs
+    def reset(self, dn, **_kwargs):
+        """Reset user quota for given DN"""
+        user, name = parse_dn(dn)
+        self.userDictPerDay[user] = (0, today)
+        return self.userForm(user, name)
+
     def addLfn(self, user, lfn):
         """add LFN request to the queue"""
         # check how may requests in total user placed today
         today = time.strftime("%Y%m%d", time.gmtime(time.time()))
         if  self.userDictPerDay.has_key(user):
             nReq, day = self.userDictPerDay[user]
-            if  day != today and nReq > self.day_transfer:
+            if  day == today and nReq > self.day_transfer:
                 return 0
             else:
-                if  day != today:
-                    self.userDictPerDay[user] = (0, today)
+                self.userDictPerDay[user] = (0, today)
         else:
             self.userDictPerDay[user] = (0, today)
         lfnList, statList = self.userDict[user]
