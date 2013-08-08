@@ -35,16 +35,19 @@ phedex.url = 'https://cmsweb.cern.ch/phedex/datasvc/json/prod'
 
 # sitedb section
 sitedb = config.FileMover.section_('sitedb')
-# New SiteDB
 sitedb.url = 'https://cmsweb.cern.ch/sitedb/data/prod'
-# Old SiteDB
-#sitedb.url = 'https://cmsweb.cern.ch/sitedb/json/index'
 
 # dbs section
 dbs = config.FileMover.section_('dbs')
 dbs.url = 'http://cmsdbsprod.cern.ch'
 dbs.instance = 'cms_dbs_prod_global'
 dbs.params = {'apiversion': 'DBS_2_0_9', 'api': 'executeQuery'}
+
+# dbs3 section
+#dbs = config.FileMover.section_('dbs')
+#dbs.url = 'https://cmsweb.cern.ch/dbs/prod/global/DBSReader'
+#dbs.instance = 'prod'
+#dbs.params = {}
 
 # Views are all pages 
 config.FileMover.section_('views')
@@ -85,7 +88,8 @@ transfer_wrapper.transfer_command = 'srm-copy'
 
 # Security module stuff
 config.component_('SecurityModule')
-config.SecurityModule.key_file = '/Users/vk/Work/apache/install_2.2.19/binkey'
+#config.SecurityModule.key_file = '/Users/vk/Work/Tools/apache/install_2.2.19/binkey'
+config.SecurityModule.key_file = '/Users/vk/CMS/DMWM/GIT/FileMover/header-auth-key'
 config.SecurityModule.store = 'filestore'
 config.SecurityModule.store_path = '/tmp/security-store'
 config.SecurityModule.mount_point = 'auth'
