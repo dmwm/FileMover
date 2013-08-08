@@ -29,8 +29,10 @@ class FileLookup(MappingManager):
         dbsurl = cp.get('dbs', 'url')
         dbsinst = cp.get('dbs', 'instance')
         dbsparams = cp.get('dbs', 'params')
-        self._dbs = DBS(dbsurl, dbsinst, dbsparams)
         self.phedex_url = cp.get('phedex', 'url')
+        dbsconfig = {'dbs':dbsurl, 'dbsinst':dbsinst, 'dbsparams':dbsparams,
+                'phedex':self.phedex_url}
+        self._dbs = DBS(dbsconfig)
         self.sitedb_url = cp.get('sitedb', 'url')
         self.sitedb = SiteDBManager(self.sitedb_url)
         self._downSites = []
