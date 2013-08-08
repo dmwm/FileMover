@@ -24,13 +24,18 @@ from   fm import version as fm_version
 from   fm.utils.FMWSConfig  import fm_config
 from   fm.core.FileManager import FileManager, validate_lfn
 from   fm.core.Status import StatusCode, StatusMsg
-from   fm.dbs.DBSInteraction import DBS, dbsinstances
+from   fm.dbs.DBSInteraction import DBS
 from   fm.utils.Utils import sizeFormat, parse_dn, print_exc
 
 # WMCore/WebTools modules
 from WMCore.WebTools.Page import TemplatedPage
 
 CODES = {'valid': 0, 'too_many_request': 1, 'too_many_lfns': 2}
+
+def credentials():
+    "Get user credentials from CherryPy request header"
+    user, name = parse_dn(cherrypy.request.user['dn'])
+    return user, name
 
 def removeLfn(lfn):
     """HTML snippet for LFN remove request"""
@@ -150,7 +155,10 @@ class FileMoverService(TemplatedPage):
     def __init__(self, config):
         TemplatedPage.__init__(self, config)
         dbs = config.section_('dbs')
-        self.dbs = DBS(dbs.url, dbs.instance, dbs.params)
+        phedex = config.section_('phedex')
+        dbsconfig = {'dbs':dbs.url, 'dbsinst':dbs.instance,
+                  'dbsparams':dbs.params, 'phedex':phedex.url}
+        self.dbs = DBS(dbsconfig)
         self.securityApi    = ""
         self.fmConfig       = config.section_('fmws')
         self.verbose        = self.fmConfig.verbose
@@ -207,7 +215,8 @@ class FileMoverService(TemplatedPage):
     def index(self):
         """default service method"""
         page = self.getTopHTML()
-        user, name = parse_dn(cherrypy.request.user['dn'])
+        user, name = credentials()
+        user, name = 'Test', 'test'
         self.addUser(user)
         page += self.userForm(user, name)
         page += self.getBottomHTML()
@@ -477,7 +486,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def remove(self, lfn, **_kwargs):
         """remove requested LFN from the queue"""
-        user, _ = parse_dn(cherrypy.request.user['dn'])
+        user, _ = credentials()
         self.delLfn(user, lfn)
         try:
             self.fmgr.cancel(lfn)
@@ -508,7 +517,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def request(self, lfn, **kwargs):
         """place LFN request"""
-        user, name = parse_dn(cherrypy.request.user['dn'])
+        user, name = credentials()
         html = kwargs.get('external', 0)
         self.addUser(user)
         lfn  = lfn.strip()
@@ -541,7 +550,7 @@ class FileMoverService(TemplatedPage):
     @checkargs
     def cancel(self, lfn, **_kwargs):
         """cancel LFN request"""
-        user, _ = parse_dn(cherrypy.request.user['dn'])
+        user, _ = credentials()
         self.delLfn(user, lfn)
         page = ""
         try:
@@ -561,7 +570,7 @@ class FileMoverService(TemplatedPage):
         """return status of requested LFN"""
         cherrypy.response.headers['Cache-control'] = 'no-cache'
         cherrypy.response.headers['Expire'] = 0
-        user, _ = parse_dn(cherrypy.request.user['dn'])
+        user, _ = credentials()
         page = ""
         lfn  = lfn.strip()
         spanid = spanId(lfn)
