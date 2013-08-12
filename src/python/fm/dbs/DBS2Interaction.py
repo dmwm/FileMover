@@ -143,7 +143,7 @@ class DBS2(object):
                     msg = "LFN %s found in more then 1 block %s" \
                           % (lfn, str(blockList))
                     raise msg
-                return blockList[0]['block_name']
+                return blockList[0]
         return []
 
     def blockSiteLookup(self, lfn):
