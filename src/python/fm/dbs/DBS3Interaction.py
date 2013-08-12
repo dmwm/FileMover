@@ -85,23 +85,22 @@ class DBS3(object):
         if  lfn.find("*")!=-1:
             msg = "Wrong lfn format, %s" % lfn
             raise msg
-        blocks = self.blockLookup(lfn)
+        block  = self.blockLookup(lfn)
         output = []
-        if  blocks and isinstance(blocks, dict):
-            params = {'block':blocks}
-            phedex = self.phedex_url + '/blockreplicasummary?%s' \
-                    % urllib.urlencode(params, doseq=True)
-            data = urllib2.urlopen(phedex)
-            blkInfo = json.load(data)
-            for row in blkInfo['phedex']['block']:
-                blk = row['name']
-                replicas = row['replica']
-                sites = set()
-                for rep in replicas:
-                    if  rep['complete'] == 'y':
-                        sites.add(rep['node'])
-                for site in sites:
-                    output.append((blk, site))
+        params = {'block':block}
+        phedex = self.phedex_url + '/blockReplicas?%s' \
+                % urllib.urlencode(params, doseq=True)
+        data = urllib2.urlopen(phedex)
+        blkInfo = json.load(data)
+        for row in blkInfo['phedex']['block']:
+            blk = row['name']
+            replicas = row['replica']
+            sites = set()
+            for rep in replicas:
+                if  rep['complete'] == 'y' and rep['se']:
+                    sites.add(rep['se'])
+            for site in sites:
+                output.append((blk, site))
         return output
 
     def getFiles(self, run=None, dataset=None, lumi=None, verbose=0):
@@ -111,26 +110,27 @@ class DBS3(object):
         params = dict(self.params)
         params.update({"detail":True})
         if  run:
-            params.update({'run_num':run})
+            params.update({'run':run})
+# switch to run_num when DBS3 is ready
+#            params.update({'run_num':run})
         if  dataset:
             params.update({'dataset':dataset})
         if  lumi:
             params.update({'lumi_list':lumi})
-        dbsurl = self.getdbsurl(dbs) + '/files'
         query  = "find file,file.size where"
         fileList = []
         for dbs in self.dbslist:
             try:
                 if  verbose:
                     print dbs
-                dbsurl = self.getdbsurl(dbs) + '?%s' \
+                dbsurl = self.getdbsurl(dbs) + '/files?%s' \
                     % urllib.urlencode(params, doseq=True)
                 data   = urllib2.urlopen(dbsurl)
                 files  = json.load(data)
                 for row in files:
                     lfn = row['logical_file_name']
                     size = row['file_size']
-                    fileList.append(lfn, size)
+                    fileList.append([lfn, sizeFormat(size)])
                 if  fileList:
                     print "Found files in %s" % dbs
                     return fileList
