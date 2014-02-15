@@ -2,7 +2,26 @@
 #set name=$quote($name)
 <!-- templateForm -->
 <hr class="hline" />
-Hello ${name}
+
+<div style="color:red;">
+Dear ${name}, we would like to inform you that FileMover data-service is
+retired in CMS.  It was based on DBS2 system which is no longer the main source
+of meta-data. The support for FileMover will be very minimal and service will
+be shutdown in mid spring. We ask all users to migrated as soon as possible to
+xrootd method of copying LFNs from remote location. All steps are described in
+this twiki:
+https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookXrootdService
+</div>
+You can follow these simple steps to fetch your favorite LFN:
+<pre>
+source /afs/cern.ch/cms/cmsset_default.sh
+source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh
+cmsrel CMSSW_6_0_0
+cd CMSSW_6_0_0
+cmsenv
+xrdcp root://xrootd.unl.edu/LFN /some/local/path
+</pre>
+
 <hr class="hline" />
 
 <br />
