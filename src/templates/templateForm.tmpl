@@ -3,16 +3,17 @@
 <!-- templateForm -->
 <hr class="hline" />
 
-<div style="color:red;">
-Dear ${name}, we would like to inform you that FileMover data-service is
+Hello ${name},
+<br/>
+<div style="color:red; width:70%">
+we would like to inform you that FileMover data-service is
 retired in CMS.  It was based on DBS2 system which is no longer the main source
 of meta-data. The support for FileMover will be very minimal and service will
 be shutdown in mid spring. We ask all users to migrated as soon as possible to
-xrootd method of copying LFNs from remote location. All steps are described in
-this twiki:
-https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookXrootdService
+xrootd method of copying LFNs from remote location.
 </div>
-You can follow these simple steps to fetch your favorite LFN:
+<br/>
+For example, any LFN can be retrieved via the following method:
 <pre>
 source /afs/cern.ch/cms/cmsset_default.sh
 source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh
@@ -21,6 +22,12 @@ cd CMSSW_6_0_0
 cmsenv
 xrdcp root://xrootd.unl.edu/LFN /some/local/path
 </pre>
+<div style="width:70%">
+Additional information about xrootd can be found here:
+<a href="https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookXrootdService">
+https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookXrootdService
+</a>
+</div>
 
 <hr class="hline" />
 
