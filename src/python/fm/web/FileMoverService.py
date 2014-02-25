@@ -216,7 +216,6 @@ class FileMoverService(TemplatedPage):
         """default service method"""
         page = self.getTopHTML()
         user, name = credentials()
-        user, name = 'Test', 'test'
         self.addUser(user)
         page += self.userForm(user, name)
         page += self.getBottomHTML()
